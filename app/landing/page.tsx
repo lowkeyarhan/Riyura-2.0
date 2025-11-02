@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import "../globals.css";
 
 export default function LandingPage() {
   return (
@@ -102,53 +103,74 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative isolate min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 z-0">
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
               backgroundImage: "url('/landingPage.png')",
+              filter: "brightness(0.6) contrast(1.1)",
             }}
           />
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-black/50"></div>
         </div>
 
-        {/* Hero Content */}
-        <div
-          className="relative z-10 max-w-7xl mx-auto px-6 text-center w-full"
-          style={{ top: "0px", bottom: "0px" }}
-        >
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16">
-            <Link
-              href="/home"
-              className="group flex items-center gap-3 px-8 py-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-full text-white font-semibold text-lg uppercase tracking-wider transition-all shadow-lg shadow-orange-500/50 hover:shadow-xl hover:shadow-orange-500/70"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Start Watching
-            </Link>
+        {/* Cinematic Hero Headings */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20 pointer-events-none -translate-y-30">
+          <h1
+            className="blend text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-3"
+            style={{
+              fontFamily: "'Bruno Ace', sans-serif",
+            }}
+          >
+            Beyond Limits.
+          </h1>
 
-            <Link
-              href="/explore"
-              className="group flex items-center gap-3 px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full text-white font-semibold text-lg uppercase tracking-wider transition-all"
+          <h1
+            className="blend text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white"
+            style={{
+              fontFamily: "'Bruno Ace', sans-serif",
+              mixBlendMode: "overlay",
+            }}
+          >
+            Beyond Definition.
+          </h1>
+        </div>
+
+        {/* Hero Content (buttons and paragraph at the bottom) */}
+        <div className="absolute bottom-0 left-0 w-full flex flex-col items-center justify-end z-20 pb-16">
+          <div className="w-full text-center px-6 z-10 mb-12">
+            <p
+              className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto font-extralight"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
             >
+              Dive into a world of unlimited movies, anime and shows with
+              Riyura. Watch anything for free at stunning 4k HDR quality
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <Link
+              href="/auth"
+              className="group relative flex flex-row rounded-full items-center justify-center gap-3 w-auto overflow-hidden h-16 px-12 text-lg font-bold tracking-wider uppercase transition-all duration-300"
+              style={{ fontFamily: "'Bruno Ace', sans-serif" }}
+            >
+              {/* Animated gradient background */}
+              <div className="absolute inset-0 bg-linear-to-r from-orange-600 via-red-600 to-orange-600 opacity-100 group-hover:opacity-90 transition-opacity"></div>
+
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-red-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              {/* Content */}
               <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
+                className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform"
+                fill="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
+                <path d="M8 5v14l11-7z" />
               </svg>
-              Browse Library
+              <span className="relative z-10 text-white">Start Watching</span>
+
+              {/* Hover shine effect */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-linear-to-r from-transparent via-white/20 to-transparent"></div>
             </Link>
           </div>
         </div>
