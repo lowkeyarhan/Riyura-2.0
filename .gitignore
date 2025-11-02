@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+
+# VSCode
+.vscode/
+
+# Mac
+.DS_Store
+
+# Env
+.env*
+
+# Logs
+logs/
+*.log
+
+# Build
+build/
+dist/
+
+# Coverage
+coverage/
+
+# Misc
+*.local
+*.swp
+.idea/
