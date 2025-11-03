@@ -2,7 +2,7 @@
 
 export default function Navbar() {
   return (
-    <nav className="fixed top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
+    <nav className="absolute top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
       <div className="px-8 md:px-16 lg:px-20 py-4 flex items-center justify-between">
         <div className="hidden md:flex items-center justify-between gap-16 text-sm uppercase tracking-wider text-gray-300">
           <button

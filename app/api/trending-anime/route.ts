@@ -3,14 +3,17 @@ import { NextResponse } from "next/server";
 // Define what a single anime looks like
 interface Anime {
   id: number;
-  name: string;
+  name?: string;
+  title?: string;
   original_name?: string;
   overview: string;
   backdrop_path: string;
   poster_path: string;
   genre_ids?: number[];
   vote_average: number;
-  first_air_date: string;
+  first_air_date?: string;
+  release_date?: string;
+  media_type?: string;
 }
 
 // Define what TMDB API returns
@@ -30,36 +33,52 @@ export async function GET() {
     );
   }
 
-  // Fetch anime (animated TV shows) from TMDB
+  // Fetch anime (animated TV shows and movies) from TMDB
   try {
-    // Build the TMDB API URL for anime - only animation genre (genre ID 16)
-    const tmdbUrl = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`;
+    // Fetch both TV shows and movies with animation genre
+    const [tvResponse, movieResponse] = await Promise.all([
+      fetch(
+        `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
+        {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+        }
+      ),
+      fetch(
+        `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
+        {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+        }
+      ),
+    ]);
 
-    // Make the request to TMDB
-    const response = await fetch(tmdbUrl, {
-      headers: { accept: "application/json" },
-      cache: "no-store", // Don't cache - always get fresh data
-    });
-
-    // Check if the request was successful
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json(
-        { error: `TMDB API error (${response.status}): ${errorText}` },
-        { status: response.status }
-      );
+    // Check if the requests were successful
+    if (!tvResponse.ok || !movieResponse.ok) {
+      return NextResponse.json({ error: `TMDB API error` }, { status: 500 });
     }
 
-    // Parse the JSON response from TMDB
-    const data = (await response.json()) as TMDBResponse;
+    // Parse the JSON responses from TMDB
+    const tvData = (await tvResponse.json()) as TMDBResponse;
+    const movieData = (await movieResponse.json()) as TMDBResponse;
 
-    // Get the results (already filtered by TMDB to show only Japanese animation)
-    const allResults = Array.isArray(data?.results) ? data.results : [];
+    // Get the results and add media_type
+    const tvResults = Array.isArray(tvData?.results)
+      ? tvData.results.map((item) => ({ ...item, media_type: "tv" }))
+      : [];
+    const movieResults = Array.isArray(movieData?.results)
+      ? movieData.results.map((item) => ({ ...item, media_type: "movie" }))
+      : [];
+
+    // Combine and sort by popularity
+    const allResults = [...tvResults, ...movieResults].sort(
+      (a, b) => b.vote_average - a.vote_average
+    );
 
     // Clean up the data - only send what we need
-    const cleanedAnime = allResults.map((show) => ({
+    const cleanedAnime = allResults.slice(0, 20).map((show) => ({
       id: show.id,
-      name: show.name,
+      name: show.name || show.title,
       original_name: show.original_name,
       overview: show.overview,
       backdrop_path: show.backdrop_path,
@@ -67,6 +86,8 @@ export async function GET() {
       genre_ids: show.genre_ids,
       vote_average: show.vote_average,
       first_air_date: show.first_air_date,
+      release_date: show.release_date,
+      media_type: show.media_type,
     }));
 
     // Send the cleaned data back to the frontend

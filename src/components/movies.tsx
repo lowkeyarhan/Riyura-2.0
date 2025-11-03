@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface Movie {
   id: number;
@@ -19,6 +20,7 @@ export default function Movies() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -54,7 +56,6 @@ export default function Movies() {
     <div className="min-h-screen bg-dark">
       {/* Main Content */}
       <main className="mx-auto">
-
         {error && (
           <div className="flex justify-center items-center min-h-96">
             <div className="text-red-500 text-lg">Error: {error}</div>
@@ -68,6 +69,7 @@ export default function Movies() {
                 <div
                   key={movie.id}
                   className="group relative cursor-pointer rounded-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl hover:shadow-black/50"
+                  onClick={() => router.push(`/details/movie/${movie.id}`)}
                 >
                   <div className="relative aspect-2/3">
                     <Image

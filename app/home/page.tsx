@@ -21,7 +21,7 @@ export default function HomePage() {
       {/* Section Selector */}
       <div className="px-8 md:px-16 lg:px-20 py-12">
         {/* Navigation Tabs */}
-        <div className="flex justify-center items-center gap-8 pt-8 mb-8">
+        <div className="flex justify-center border-b border-white/10 items-center gap-8 pt-8 mb-8">
           <button
             onClick={() => setActiveSection("movies")}
             className={`flex items-center gap-2 p-4 transition-all duration-300 text-2xl relative ${

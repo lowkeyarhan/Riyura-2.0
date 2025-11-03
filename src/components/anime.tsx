@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 interface Anime {
@@ -9,11 +10,14 @@ interface Anime {
   poster_path: string;
   vote_average: number;
   first_air_date?: string;
+  release_date?: string;
   overview: string;
   genre_ids?: number[];
+  media_type?: string;
 }
 
 export default function Anime() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [anime, setAnime] = useState<Anime[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +67,14 @@ export default function Anime() {
                 <div
                   key={show.id}
                   className="group relative cursor-pointer rounded-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl hover:shadow-black/50"
+                  onClick={() => {
+                    // If it's a movie type anime, redirect to movie details page
+                    if (show.media_type === "movie") {
+                      router.push(`/details/movie/${show.id}`);
+                    }
+                    // Otherwise, it's a TV show - can add TV show details page later
+                    // For now, you can either do nothing or redirect to movie page as well
+                  }}
                 >
                   <div className="relative aspect-2/3">
                     <Image
@@ -94,7 +106,7 @@ export default function Anime() {
                       </h3>
 
                       <div className="flex items-center gap-3 text-sm">
-                        {show.first_air_date && (
+                        {(show.first_air_date || show.release_date) && (
                           <div className="flex items-center gap-1 text-gray-300">
                             <svg
                               className="w-4 h-4"
@@ -116,14 +128,13 @@ export default function Anime() {
                               <line x1="3" y1="10" x2="21" y2="10" />
                             </svg>
                             <span>
-                              {new Date(show.first_air_date).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                }
-                              )}
+                              {new Date(
+                                show.first_air_date || show.release_date || ""
+                              ).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
                             </span>
                           </div>
                         )}
