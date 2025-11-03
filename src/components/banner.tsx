@@ -231,8 +231,8 @@ export default function Banner() {
         {/* Movie Title */}
         {currentMovie && (
           <h1
-            className="text-4xl md:text-6xl lg:text-7xl font-black mb-8 text-white drop-shadow-lg"
-            style={{ fontFamily: "'Bruno Ace', sans-serif" }}
+            className="text-5xl md:text-7xl lg:text-7xl font-black mb-8 text-white drop-shadow-lg"
+            style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
           >
             {currentMovie.title ||
               currentMovie.name ||
