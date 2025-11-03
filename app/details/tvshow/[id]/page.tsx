@@ -6,20 +6,35 @@ import Navbar from "@/src/components/navbar";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 
-interface Movie {
+interface Season {
   id: number;
-  title: string;
+  name: string;
+  overview: string;
+  poster_path: string;
+  season_number: number;
+  episode_count: number;
+  air_date: string;
+}
+
+interface TVShow {
+  id: number;
+  name: string;
   backdrop_path: string;
   poster_path: string;
-  release_date: string;
+  first_air_date: string;
+  last_air_date?: string;
   vote_average: number;
-  runtime: number;
+  number_of_seasons: number;
+  number_of_episodes: number;
+  episode_run_time: number[];
   tagline: string;
   overview: string;
-  budget: number;
-  revenue: number;
   genres: { id: number; name: string }[];
   production_companies: { id: number; name: string; logo_path: string }[];
+  production_countries?: { iso_3166_1: string; name: string }[];
+  networks: { id: number; name: string; logo_path: string }[];
+  created_by?: { id: number; name: string; profile_path: string }[];
+  seasons: Season[];
   credits: {
     cast: {
       id: number;
@@ -27,37 +42,43 @@ interface Movie {
       character: string;
       profile_path: string;
     }[];
+    crew?: {
+      id: number;
+      name: string;
+      job: string;
+      department: string;
+    }[];
   };
   similar: {
     results: {
       id: number;
-      title: string;
+      name: string;
       poster_path: string;
       vote_average: number;
     }[];
   };
 }
 
-export default function MovieDetails() {
+export default function TVShowDetails() {
   const router = useRouter();
   const params = useParams();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [movie, setMovie] = useState<Movie | null>(null);
+  const [tvShow, setTVShow] = useState<TVShow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMovieDetails = async () => {
+    const fetchTVShowDetails = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/movie/${params.id}`);
+        const response = await fetch(`/api/tvshow/${params.id}`);
         if (!response.ok) {
-          throw new Error("Failed to fetch movie details");
+          throw new Error("Failed to fetch TV show details");
         }
         const data = await response.json();
-        setMovie(data);
+        setTVShow(data);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -67,14 +88,16 @@ export default function MovieDetails() {
     };
 
     if (params.id) {
-      fetchMovieDetails();
+      fetchTVShowDetails();
     }
   }, [params.id]);
 
-  const formatRuntime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+  const formatRuntime = (minutes: number[]) => {
+    if (!minutes || minutes.length === 0) return "N/A";
+    const avgMinutes = minutes[0];
+    const hours = Math.floor(avgMinutes / 60);
+    const mins = avgMinutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
   const formatDate = (dateString: string) => {
@@ -113,14 +136,14 @@ export default function MovieDetails() {
     );
   }
 
-  if (error || !movie) {
+  if (error || !tvShow) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: "rgb(7, 9, 16)" }}
       >
         <div className="text-red-500 text-2xl">
-          {error || "Movie not found"}
+          {error || "TV Show not found"}
         </div>
       </div>
     );
@@ -143,7 +166,7 @@ export default function MovieDetails() {
             <iframe
               className="w-full h-full rounded-lg"
               src={`https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1`}
-              title="Movie Trailer"
+              title="TV Show Trailer"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             ></iframe>
@@ -155,8 +178,8 @@ export default function MovieDetails() {
       <div className="relative h-[70vh] min-h-[500px] overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`}
-            alt={movie.title}
+            src={`https://image.tmdb.org/t/p/original${tvShow.backdrop_path}`}
+            alt={tvShow.name}
             fill
             className="object-cover brightness-50"
             priority
@@ -169,30 +192,37 @@ export default function MovieDetails() {
               className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white"
               style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
             >
-              {movie.title}
+              {tvShow.name}
             </h1>
             <div
               className="flex items-center gap-4 mb-4 text-gray-200"
               style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
             >
               <span className="text-lg">
-                {new Date(movie.release_date).getFullYear()}
+                {new Date(tvShow.first_air_date).getFullYear()}
               </span>
               <span>•</span>
               <div className="flex items-center gap-1">
+                <svg className="w-5 h-5 fill-yellow-400" viewBox="0 0 24 24">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
                 <span className="font-semibold">
-                  {movie.vote_average?.toFixed(1) || "N/A"}/10
+                  {tvShow.vote_average?.toFixed(1) || "N/A"}/10
                 </span>
               </div>
               <span>•</span>
-              <span>{formatRuntime(movie.runtime)}</span>
+              <span>
+                {tvShow.number_of_seasons} Season
+                {tvShow.number_of_seasons !== 1 ? "s" : ""} (
+                {tvShow.number_of_episodes} Episodes)
+              </span>
             </div>
-            {movie.tagline && (
+            {tvShow.tagline && (
               <p
                 className="text-lg text-gray-300 italic mb-6"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
-                {movie.tagline}
+                {tvShow.tagline}
               </p>
             )}
             <div className="flex items-center gap-3 flex-wrap">
@@ -205,7 +235,7 @@ export default function MovieDetails() {
                 Watch Trailer
               </button>
               <button
-                onClick={() => router.push(`/watch/movie/${movie.id}`)}
+                onClick={() => router.push(`/watch/tv/${tvShow.id}`)}
                 className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition font-semibold"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
@@ -251,7 +281,7 @@ export default function MovieDetails() {
         {/* Overview */}
         <section className="space-y-6">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02]">
+            <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] ">
               <h2
                 className="text-4xl font-semibold text-white mb-6"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
@@ -262,47 +292,92 @@ export default function MovieDetails() {
                 className="text-white/70 leading-relaxed"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
-                {movie.overview}
+                {tvShow.overview}
               </p>
             </div>
             <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] space-y-4">
-              {/* Release Date */}
+              {/* First Air Date */}
               <div className="flex items-center justify-between">
                 <span
                   className="text-white/60"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
-                  Release Date
+                  First Air Date
                 </span>
                 <span
                   className="text-white"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
-                  {formatDate(movie.release_date)}
+                  {formatDate(tvShow.first_air_date)}
                 </span>
               </div>
               <div className="h-px bg-white/10" />
 
-              {/* Runtime */}
+              {/* Last Air Date */}
+              {tvShow.last_air_date && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-white/60"
+                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                    >
+                      Last Air Date
+                    </span>
+                    <span
+                      className="text-white"
+                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                    >
+                      {formatDate(tvShow.last_air_date)}
+                    </span>
+                  </div>
+                  <div className="h-px bg-white/10" />
+                </>
+              )}
+
+              {/* Episode Runtime */}
+              {tvShow.episode_run_time &&
+                tvShow.episode_run_time.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="text-white/60"
+                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      >
+                        Episode Runtime
+                      </span>
+                      <span
+                        className="text-white"
+                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      >
+                        {formatRuntime(tvShow.episode_run_time)}
+                      </span>
+                    </div>
+                    <div className="h-px bg-white/10" />
+                  </>
+                )}
+
+              {/* Network */}
               <div className="flex items-center justify-between">
                 <span
                   className="text-white/60"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
-                  Runtime
+                  Network
                 </span>
                 <span
                   className="text-white"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
-                  {formatRuntime(movie.runtime)}
+                  {tvShow.networks?.[0]?.name ||
+                    tvShow.production_companies?.[0]?.name ||
+                    "Unknown"}
                 </span>
               </div>
               <div className="h-px bg-white/10" />
 
               {/* Production Companies */}
-              {movie.production_companies &&
-                movie.production_companies.length > 0 && (
+              {tvShow.production_companies &&
+                tvShow.production_companies.length > 0 && (
                   <>
                     <div className="flex items-start justify-between">
                       <span
@@ -315,7 +390,7 @@ export default function MovieDetails() {
                         className="text-white text-right max-w-[60%]"
                         style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                       >
-                        {movie.production_companies
+                        {tvShow.production_companies
                           .slice(0, 2)
                           .map((c) => c.name)
                           .join(", ")}
@@ -325,42 +400,21 @@ export default function MovieDetails() {
                   </>
                 )}
 
-              {/* Budget */}
-              {movie.budget > 0 && (
+              {/* Created By */}
+              {tvShow.created_by && tvShow.created_by.length > 0 && (
                 <>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between">
                     <span
                       className="text-white/60"
                       style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                     >
-                      Budget
+                      Created By
                     </span>
                     <span
-                      className="text-white"
+                      className="text-white text-right max-w-[60%]"
                       style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                     >
-                      ${(movie.budget / 1000000).toFixed(1)}M
-                    </span>
-                  </div>
-                  <div className="h-px bg-white/10" />
-                </>
-              )}
-
-              {/* Revenue */}
-              {movie.revenue > 0 && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-white/60"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    >
-                      Revenue
-                    </span>
-                    <span
-                      className="text-white"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    >
-                      ${(movie.revenue / 1000000).toFixed(1)}M
+                      {tvShow.created_by.map((c) => c.name).join(", ")}
                     </span>
                   </div>
                   <div className="h-px bg-white/10" />
@@ -376,7 +430,7 @@ export default function MovieDetails() {
                   Genres
                 </span>
                 <div className="flex gap-2 flex-wrap justify-end">
-                  {movie.genres?.slice(0, 3).map((genre, index) => (
+                  {tvShow.genres?.slice(0, 3).map((genre, index) => (
                     <span
                       key={genre.id}
                       className={`rounded-full px-3 py-1 text-xs font-medium bg-white/15`}
@@ -401,7 +455,7 @@ export default function MovieDetails() {
           </h2>
           <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
             <div className="flex gap-6">
-              {movie.credits?.cast?.slice(0, 12).map((person) => (
+              {tvShow.credits?.cast?.slice(0, 12).map((person) => (
                 <div
                   key={person.id}
                   className="group cursor-pointer flex-shrink-0 w-[180px]"
@@ -440,8 +494,74 @@ export default function MovieDetails() {
           </div>
         </section>
 
-        {/* Similar Movies Section */}
-        {movie.similar?.results?.length > 0 && (
+        {/* Seasons Section */}
+        {tvShow.seasons && tvShow.seasons.length > 0 && (
+          <div className="mb-16">
+            <h2
+              className="text-4xl font-semibold mb-8 text-white"
+              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            >
+              Seasons
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tvShow.seasons
+                .filter((season) => season.season_number > 0)
+                .map((season) => (
+                  <div
+                    key={season.id}
+                    className="flex gap-4 bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl overflow-hidden hover:from-white/10 hover:to-white/5 transition cursor-pointer group"
+                  >
+                    <div className="relative w-28 h-40 flex-shrink-0">
+                      {season.poster_path ? (
+                        <Image
+                          src={`https://image.tmdb.org/t/p/w500${season.poster_path}`}
+                          alt={season.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-500 text-xs text-center p-2">
+                          No Poster
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 p-4 flex flex-col justify-center">
+                      <h3
+                        className="text-lg font-semibold text-white mb-2"
+                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      >
+                        {season.name}
+                      </h3>
+                      <div
+                        className="flex items-center gap-3 text-sm text-gray-400"
+                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      >
+                        {season.air_date && (
+                          <span>{new Date(season.air_date).getFullYear()}</span>
+                        )}
+                        <span>•</span>
+                        <span>
+                          {season.episode_count} Episode
+                          {season.episode_count !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      {season.overview && (
+                        <p
+                          className="text-white/60 text-sm leading-relaxed mt-2 line-clamp-3"
+                          style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                        >
+                          {season.overview}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Similar TV Shows Section */}
+        {tvShow.similar?.results?.length > 0 && (
           <div className="mb-12">
             <h2
               className="text-4xl font-semibold mb-8 text-white"
@@ -450,16 +570,16 @@ export default function MovieDetails() {
               More Like This
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {movie.similar.results.slice(0, 5).map((similar) => (
+              {tvShow.similar.results.slice(0, 5).map((similar) => (
                 <div
                   key={similar.id}
                   className="group relative cursor-pointer rounded-2xl overflow-hidden transition-transform duration-300"
-                  onClick={() => router.push(`/details/movie/${similar.id}`)}
+                  onClick={() => router.push(`/details/tvshow/${similar.id}`)}
                 >
                   <div className="relative aspect-[2/3]">
                     <Image
                       src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
-                      alt={similar.title}
+                      alt={similar.name}
                       fill
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
                     />
@@ -469,7 +589,7 @@ export default function MovieDetails() {
                       className="text-base font-bold text-white leading-tight mb-2"
                       style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                     >
-                      {similar.title}
+                      {similar.name}
                     </h3>
                     <div className="flex items-center gap-1 text-yellow-400">
                       <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">

@@ -71,9 +71,10 @@ export default function Anime() {
                     // If it's a movie type anime, redirect to movie details page
                     if (show.media_type === "movie") {
                       router.push(`/details/movie/${show.id}`);
+                    } else {
+                      // It's a TV show, redirect to TV show details page
+                      router.push(`/details/tvshow/${show.id}`);
                     }
-                    // Otherwise, it's a TV show - can add TV show details page later
-                    // For now, you can either do nothing or redirect to movie page as well
                   }}
                 >
                   <div className="relative aspect-2/3">

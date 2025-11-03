@@ -1,29 +1,37 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 export default function Navbar() {
+  const router = useRouter();
+
   return (
     <nav className="absolute top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
       <div className="px-8 md:px-16 lg:px-20 py-4 flex items-center justify-between">
         <div className="hidden md:flex items-center justify-between gap-16 text-sm uppercase tracking-wider text-gray-300">
           <button
+            onClick={() => router.push("/home")}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             H O M E
           </button>
           <button
+            onClick={() => router.push("/watchlist")}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             W A T C H L I S T
           </button>
           <button
+            onClick={() => router.push("/search")}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             S E A R C H
           </button>
           <button
+            onClick={() => router.push("/explore")}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
@@ -33,7 +41,10 @@ export default function Navbar() {
 
         <div className="flex items-center gap-3">
           {/* Profile Box */}
-          <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all">
+          <div
+            onClick={() => router.push("/profile")}
+            className="flex items-center gap-3 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all"
+          >
             <span className="text-sm uppercase tracking-wider text-gray-300">
               U S E R
             </span>

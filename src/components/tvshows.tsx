@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface TVShow {
   id: number;
@@ -14,6 +15,7 @@ interface TVShow {
 }
 
 export default function TVShows() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [tvShows, setTVShows] = useState<TVShow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,6 @@ export default function TVShows() {
     <div className="min-h-screen bg-dark">
       {/* Main Content */}
       <main className="mx-auto">
-
         {error && (
           <div className="flex justify-center items-center min-h-96">
             <div className="text-red-500 text-lg">Error: {error}</div>
@@ -64,6 +65,7 @@ export default function TVShows() {
                 <div
                   key={show.id}
                   className="group relative cursor-pointer rounded-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl hover:shadow-black/50"
+                  onClick={() => router.push(`/details/tvshow/${show.id}`)}
                 >
                   <div className="relative aspect-2/3">
                     <Image
