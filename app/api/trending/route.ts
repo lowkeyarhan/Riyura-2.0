@@ -8,7 +8,10 @@ interface Movie {
   original_name?: string; // Original name in native language
   overview: string; // Movie description
   backdrop_path: string; // Background image path
+  poster_path: string; // Poster image path
   genre_ids?: number[]; // Array of genre IDs (e.g., [28, 12] for Action, Adventure)
+  vote_average: number; // Rating score
+  release_date: string; // Release date
 }
 
 // Define what TMDB API returns
@@ -60,7 +63,10 @@ export async function GET() {
           original_name: movie.original_name,
           overview: movie.overview,
           backdrop_path: movie.backdrop_path,
+          poster_path: movie.poster_path,
           genre_ids: movie.genre_ids,
+          vote_average: movie.vote_average,
+          release_date: movie.release_date,
         }))
       : [];
 

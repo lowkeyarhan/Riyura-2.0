@@ -36,10 +36,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link
-              href="/landing"
-              className="inline-flex items-center gap-3 mb-4"
-            >
+            <Link href="/landing" className="inline-flex items-center gap-3">
               <img
                 src="/logo.png"
                 alt="Riyura Logo"
