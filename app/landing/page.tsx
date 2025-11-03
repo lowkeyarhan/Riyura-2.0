@@ -115,7 +115,7 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* Cinematic Hero Headings */}
+        {/* Hero Headings */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20 pointer-events-none -translate-y-30">
           <h1
             className="blend text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-3"
