@@ -7,6 +7,7 @@ import Movies from "@/src/components/movies";
 import TVShows from "@/src/components/tvshows";
 import Anime from "@/src/components/anime";
 import { Film, Tv, Sparkles } from "lucide-react";
+import Footer from "@/src/components/footer";
 
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState<
@@ -19,7 +20,7 @@ export default function HomePage() {
       <Banner />
 
       {/* Section Selector */}
-      <div className="px-8 md:px-16 lg:px-20 py-12">
+      <div className="px-8 md:px-16 lg:px-16 pt-12 lg:pb-20">
         {/* Navigation Tabs */}
         <div className="flex justify-center border-b border-white/15 items-center gap-8 pt-8 mb-8">
           <button
@@ -84,6 +85,7 @@ export default function HomePage() {
         {activeSection === "tvshows" && <TVShows />}
         {activeSection === "anime" && <Anime />}
       </div>
+      <Footer />
     </div>
   );
 }

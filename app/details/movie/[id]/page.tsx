@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Navbar from "@/src/components/navbar";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
+import Footer from "@/src/components/footer";
 
 interface Movie {
   id: number;
@@ -489,6 +490,7 @@ export default function MovieDetails() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
