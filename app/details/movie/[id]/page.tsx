@@ -199,15 +199,15 @@ export default function MovieDetails() {
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={handlePlayTrailer}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full transition font-semibold"
+                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full cursor-pointer transition font-semibold"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
                 <Play className="w-5 h-5" fill="currentColor" />
                 Watch Trailer
               </button>
               <button
-                onClick={() => router.push(`/watch/movie/${movie.id}`)}
-                className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition font-semibold"
+                onClick={() => router.push(`/player/movie/${movie.id}`)}
+                className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full cursor-pointer transition font-semibold"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
                 <Play className="w-5 h-5" fill="currentColor" />
