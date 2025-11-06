@@ -236,7 +236,9 @@ export default function TVShowDetails() {
                 Watch Trailer
               </button>
               <button
-                onClick={() => router.push(`/watch/tv/${tvShow.id}`)}
+                onClick={() =>
+                  router.push(`/player/tvshow/${tvShow.id}?season=1&episode=1`)
+                }
                 className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition font-semibold"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
@@ -510,7 +512,7 @@ export default function TVShowDetails() {
                 .map((season) => (
                   <div
                     key={season.id}
-                    className="flex gap-4 bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl overflow-hidden hover:from-white/10 hover:to-white/5 transition cursor-pointer group"
+                    className="flex gap-4 bg-gradient-to-br from-white/10 to-white/[0.02] rounded-2xl overflow-hidden transition cursor-pointer group"
                   >
                     <div className="relative w-28 h-40 flex-shrink-0">
                       {season.poster_path ? (

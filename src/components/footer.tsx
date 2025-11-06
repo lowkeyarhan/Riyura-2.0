@@ -13,7 +13,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative bg-white/10 text-white/30 mx-8 md:mx-16 lg:mx-16 lg:mb-6 p-6 rounded-t-3xl border border-white/15 overflow-hidden">
+    <footer className="relative bg-gradient-to-br from-white/5 to-white/[0.02] text-white/30 mx-8 md:mx-16 lg:mx-16 lg:mb-6 p-6 rounded-t-3xl border border-white/15 overflow-hidden">
       {/* Background Effects
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -left-32 top-16 w-[70vw] h-[70vh] bg-cyan-500/10 rounded-full blur-[140px]"></div>
