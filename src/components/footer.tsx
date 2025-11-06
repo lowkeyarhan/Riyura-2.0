@@ -13,13 +13,13 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative bg-gradient-to-br from-gray/50 to-black/50 text-white/30 mx-8 md:mx-16 lg:mx-16 lg:mb-6 p-6 rounded-t-3xl border border-white/15 overflow-hidden">
-      {/* Background Effects */}
+    <footer className="relative bg-white/10 text-white/30 mx-8 md:mx-16 lg:mx-16 lg:mb-6 p-6 rounded-t-3xl border border-white/15 overflow-hidden">
+      {/* Background Effects
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -left-32 top-16 w-[70vw] h-[70vh] bg-cyan-500/10 rounded-full blur-[140px]"></div>
         <div className="absolute -right-24 bottom-0 w-[60vw] h-[70vh] bg-orange-800/10 rounded-full blur-[160px]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]"></div>
-      </div>
+      </div> */}
       <div className="relative z-10">
         {/* Newsletter Section */}
         <div className="mb-6">
@@ -58,30 +58,30 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8 ">
           {/* Movies Column */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-white/50 tracking-widest mb-2">
+            <h3 className="text-xs font-bold text-white tracking-widest mb-2">
               MOVIES
             </h3>
             <Link
               href="/movies/action"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               ACTION
             </Link>
             <Link
               href="/movies/comedy"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50  font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               COMEDY
             </Link>
             <Link
               href="/movies/drama"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50  font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               DRAMA
             </Link>
             <Link
               href="/movies/thriller"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50  font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               THRILLER
             </Link>
@@ -89,30 +89,30 @@ export default function Footer() {
 
           {/* TV Shows Column */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-white/50 tracking-widest mb-2">
+            <h3 className="text-xs font-bold text-white tracking-widest mb-2">
               TV SHOWS
             </h3>
             <Link
               href="/tv/trending"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               TRENDING
             </Link>
             <Link
               href="/tv/originals"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               ORIGINALS
             </Link>
             <Link
               href="/tv/series"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               SERIES
             </Link>
             <Link
               href="/tv/documentaries"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               DOCUMENTARIES
             </Link>
@@ -120,30 +120,30 @@ export default function Footer() {
 
           {/* Explore Column */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-white/50 tracking-widest mb-2">
+            <h3 className="text-xs font-bold text-white tracking-widest mb-2">
               EXPLORE
             </h3>
             <Link
               href="/watchlist"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               MY WATCHLIST
             </Link>
             <Link
               href="/downloads"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               DOWNLOADS
             </Link>
             <Link
               href="/help"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               HELP CENTER →
             </Link>
             <Link
               href="/faq"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               FAQ
             </Link>
@@ -151,14 +151,14 @@ export default function Footer() {
 
           {/* Connect Column */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-white/50 tracking-widest mb-2">
+            <h3 className="text-xs font-bold text-white tracking-widest mb-2">
               CONNECT
             </h3>
             <a
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               INSTAGRAM ↗
             </a>
@@ -166,7 +166,7 @@ export default function Footer() {
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               TWITTER ↗
             </a>
@@ -174,13 +174,13 @@ export default function Footer() {
               href="https://youtube.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               YOUTUBE ↗
             </a>
             <Link
               href="/contact"
-              className="text-sm font-medium hover:translate-x-0.5 transition-transform w-fit"
+              className="text-sm text-white/50 font-medium hover:translate-x-0.5 transition-transform w-fit"
             >
               CONTACT
             </Link>
@@ -202,7 +202,7 @@ export default function Footer() {
               height="80"
               rx="4"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <circle
               cx="50"
@@ -211,7 +211,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
             <circle
               cx="50"
@@ -220,7 +220,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
 
             {/* Film Strip */}
@@ -231,7 +231,7 @@ export default function Footer() {
               height="60"
               rx="4"
               fill="currentColor"
-              opacity="0.12"
+              opacity="0.3"
             />
             <line
               x1="110"
@@ -240,7 +240,7 @@ export default function Footer() {
               y2="130"
               stroke="currentColor"
               strokeWidth="1"
-              opacity="0.2"
+              opacity="0.4"
             />
             <line
               x1="210"
@@ -249,14 +249,14 @@ export default function Footer() {
               y2="130"
               stroke="currentColor"
               strokeWidth="1"
-              opacity="0.2"
+              opacity="0.4"
             />
 
             {/* Popcorn Box */}
             <path
               d="M 250 85 L 270 85 L 280 120 L 240 120 Z"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <rect
               x="242"
@@ -264,7 +264,7 @@ export default function Footer() {
               width="36"
               height="15"
               fill="currentColor"
-              opacity="0.1"
+              opacity="0.3"
             />
 
             {/* Film Canister */}
@@ -275,7 +275,7 @@ export default function Footer() {
               height="55"
               rx="3"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <rect
               x="305"
@@ -284,7 +284,7 @@ export default function Footer() {
               height="8"
               rx="4"
               fill="currentColor"
-              opacity="0.2"
+              opacity="0.4"
             />
 
             {/* Clapperboard */}
@@ -295,12 +295,12 @@ export default function Footer() {
               height="50"
               rx="3"
               fill="currentColor"
-              opacity="0.12"
+              opacity="0.3"
             />
             <path
               d="M 370 95 L 440 95 L 435 85 L 370 85 Z"
               fill="currentColor"
-              opacity="0.25"
+              opacity="0.5"
             />
 
             {/* Film Reel 2 */}
@@ -311,7 +311,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
             <circle
               cx="480"
@@ -320,7 +320,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
 
             {/* Ticket */}
@@ -331,7 +331,7 @@ export default function Footer() {
               height="45"
               rx="3"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <circle cx="535" cy="102" r="3" fill="currentColor" opacity="0.3" />
             <circle cx="575" cy="102" r="3" fill="currentColor" opacity="0.3" />
@@ -344,7 +344,7 @@ export default function Footer() {
               height="20"
               rx="2"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <rect
               x="630"
@@ -353,7 +353,7 @@ export default function Footer() {
               height="20"
               rx="2"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <line
               x1="625"
@@ -362,7 +362,7 @@ export default function Footer() {
               y2="105"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.2"
+              opacity="0.4"
             />
 
             {/* Film Strip 2 */}
@@ -373,7 +373,7 @@ export default function Footer() {
               height="50"
               rx="4"
               fill="currentColor"
-              opacity="0.12"
+              opacity="0.3"
             />
             <line
               x1="690"
@@ -382,7 +382,7 @@ export default function Footer() {
               y2="125"
               stroke="currentColor"
               strokeWidth="1"
-              opacity="0.2"
+              opacity="0.4"
             />
             <line
               x1="770"
@@ -391,14 +391,14 @@ export default function Footer() {
               y2="125"
               stroke="currentColor"
               strokeWidth="1"
-              opacity="0.2"
+              opacity="0.4"
             />
 
             {/* Popcorn Bucket */}
             <path
               d="M 800 90 L 825 90 L 835 125 L 790 125 Z"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
 
             {/* Film Reel 3 */}
@@ -409,7 +409,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
             <circle
               cx="870"
@@ -418,7 +418,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
 
             {/* Camera */}
@@ -429,7 +429,7 @@ export default function Footer() {
               height="40"
               rx="4"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <circle
               cx="945"
@@ -438,7 +438,7 @@ export default function Footer() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              opacity="0.3"
+              opacity="0.5"
             />
             <rect
               x="970"
@@ -447,7 +447,7 @@ export default function Footer() {
               height="20"
               rx="2"
               fill="currentColor"
-              opacity="0.2"
+              opacity="0.4"
             />
 
             {/* Film Canister 2 */}
@@ -458,7 +458,7 @@ export default function Footer() {
               height="52"
               rx="3"
               fill="currentColor"
-              opacity="0.15"
+              opacity="0.3"
             />
             <rect
               x="1006"
@@ -467,7 +467,7 @@ export default function Footer() {
               height="7"
               rx="3"
               fill="currentColor"
-              opacity="0.2"
+              opacity="0.4"
             />
 
             {/* Film Strip 3 */}
@@ -478,7 +478,7 @@ export default function Footer() {
               height="45"
               rx="4"
               fill="currentColor"
-              opacity="0.12"
+              opacity="0.3"
             />
             <line
               x1="1078"
@@ -487,7 +487,7 @@ export default function Footer() {
               y2="125"
               stroke="currentColor"
               strokeWidth="1"
-              opacity="0.2"
+              opacity="0.4"
             />
             <line
               x1="1152"
@@ -496,7 +496,7 @@ export default function Footer() {
               y2="125"
               stroke="currentColor"
               strokeWidth="1"
-              opacity="0.2"
+              opacity="0.4"
             />
           </svg>
         </div>
