@@ -19,7 +19,7 @@ interface TMDBResponse {
 
 export async function GET() {
   const apiKey =
-    process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    process.env.TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(

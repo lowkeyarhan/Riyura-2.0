@@ -33,13 +33,15 @@ export default function SearchPage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.themoviedb.org/3/search/multi?api_key=${
-          process.env.NEXT_PUBLIC_TMDB_API_KEY
-        }&query=${encodeURIComponent(query)}&page=1`
+        `/api/search?q=${encodeURIComponent(query)}&type=multi`
       );
       const data = await response.json();
+      // Ensure we always have an array
+      const list: SearchResult[] = Array.isArray(data?.results)
+        ? data.results
+        : [];
       // Filter to only include movies and TV shows
-      const filteredResults = data.results.filter(
+      const filteredResults = list.filter(
         (item: SearchResult) =>
           item.media_type === "movie" || item.media_type === "tv"
       );
