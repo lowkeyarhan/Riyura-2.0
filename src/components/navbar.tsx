@@ -7,8 +7,19 @@ export default function Navbar() {
 
   return (
     <nav className="absolute top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
-      <div className="px-8 md:px-16 lg:px-16 py-4 flex items-center justify-between">
-        <div className="hidden md:flex items-center justify-between gap-16 text-sm uppercase tracking-wider text-gray-300">
+      <div className="px-8 md:px-16 lg:px-20 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0">
+          <img src="/logo.png" alt="Riyura Logo" className="h-8 w-8" />
+          <span
+            className="text-white font-bold text-xl"
+            style={{ fontFamily: "'Bruno Ace', sans-serif" }}
+          >
+            RIYURA
+          </span>
+        </div>
+
+        {/* Center Nav Links */}
+        <div className="hidden md:flex items-center justify-center gap-12 text-sm uppercase tracking-wider text-gray-300 flex-1">
           <button
             onClick={() => router.push("/home")}
             className="hover:text-white transition-colors cursor-pointer"

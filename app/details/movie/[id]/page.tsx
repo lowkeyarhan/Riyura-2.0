@@ -443,7 +443,7 @@ export default function MovieDetails() {
 
         {/* Similar Movies Section */}
         {movie.similar?.results?.length > 0 && (
-          <div className="mb-12">
+          <div className="">
             <h2
               className="text-4xl font-semibold mb-8 text-white"
               style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
