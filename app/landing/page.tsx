@@ -72,9 +72,9 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-3">
             {/* Profile Box */}
-            <div className="flex items-center gap-3 px-4 py-2 bg-[#1a2332] rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all">
               <span className="text-sm uppercase tracking-wider text-gray-300">
-                KYLE
+                U S E R
               </span>
               <div className="w-8 h-8 rounded overflow-hidden">
                 <img

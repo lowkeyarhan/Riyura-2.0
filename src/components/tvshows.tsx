@@ -14,7 +14,17 @@ interface TVShow {
   genre_ids?: number[];
 }
 
-export default function TVShows() {
+interface TVShowsProps {
+  currentPage: number;
+  itemsPerPage: number;
+  onTotalItemsChange: (total: number) => void;
+}
+
+export default function TVShows({
+  currentPage,
+  itemsPerPage,
+  onTotalItemsChange,
+}: TVShowsProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [tvShows, setTVShows] = useState<TVShow[]>([]);
@@ -48,8 +58,18 @@ export default function TVShows() {
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  // Update total items for pagination
+  useEffect(() => {
+    onTotalItemsChange(filteredTVShows.length);
+  }, [filteredTVShows.length, onTotalItemsChange]);
+
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTVShows = filteredTVShows.slice(startIndex, endIndex);
+
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen">
       {/* Main Content */}
       <main className="mx-auto">
         {error && (
@@ -61,7 +81,7 @@ export default function TVShows() {
         {!loading && !error && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-              {filteredTVShows.map((show) => (
+              {paginatedTVShows.map((show) => (
                 <div
                   key={show.id}
                   className="group relative cursor-pointer rounded-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl hover:shadow-black/50"

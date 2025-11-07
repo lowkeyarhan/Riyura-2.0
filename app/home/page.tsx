@@ -6,6 +6,7 @@ import Navbar from "@/src/components/navbar";
 import Movies from "@/src/components/movies";
 import TVShows from "@/src/components/tvshows";
 import Anime from "@/src/components/anime";
+import Pagination from "@/src/components/pagination";
 import { Film, Tv, Sparkles } from "lucide-react";
 import Footer from "@/src/components/footer";
 
@@ -14,17 +15,32 @@ export default function HomePage() {
     "movies" | "tvshows" | "anime"
   >("movies");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 20;
+
+  const handleSectionChange = (section: "movies" | "tvshows" | "anime") => {
+    setActiveSection(section);
+    setCurrentPage(1); // Reset to page 1 when switching sections
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top smoothly
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
       <Banner />
 
       {/* Section Selector */}
-      <div className="px-8 md:px-16 lg:px-16 pt-12 lg:pb-20">
+      <div className="px-8 md:px-16 lg:px-16 pt-12 lg:pb-12">
         {/* Navigation Tabs */}
         <div className="flex justify-center border-b border-white/15 items-center gap-8 pt-8 mb-8">
           <button
-            onClick={() => setActiveSection("movies")}
+            onClick={() => handleSectionChange("movies")}
             className={`flex items-center gap-2 p-4 transition-all duration-300 text-2xl relative ${
               activeSection === "movies"
                 ? "text-red-500"
@@ -40,7 +56,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => setActiveSection("tvshows")}
+            onClick={() => handleSectionChange("tvshows")}
             className={`flex items-center gap-2 p-4 text-2xl transition-all duration-300 relative ${
               activeSection === "tvshows"
                 ? "text-red-500"
@@ -56,7 +72,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => setActiveSection("anime")}
+            onClick={() => handleSectionChange("anime")}
             className={`flex items-center gap-2 p-4 text-2xl transition-all duration-300 relative ${
               activeSection === "anime"
                 ? "text-red-500"
@@ -81,9 +97,35 @@ export default function HomePage() {
         </h2>
 
         {/* Content Sections */}
-        {activeSection === "movies" && <Movies />}
-        {activeSection === "tvshows" && <TVShows />}
-        {activeSection === "anime" && <Anime />}
+        {activeSection === "movies" && (
+          <Movies
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onTotalItemsChange={setTotalItems}
+          />
+        )}
+        {activeSection === "tvshows" && (
+          <TVShows
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onTotalItemsChange={setTotalItems}
+          />
+        )}
+        {activeSection === "anime" && (
+          <Anime
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onTotalItemsChange={setTotalItems}
+          />
+        )}
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+        />
       </div>
       <Footer />
     </div>

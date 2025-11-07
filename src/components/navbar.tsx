@@ -54,7 +54,7 @@ export default function Navbar() {
           {/* Profile Box */}
           <div
             onClick={() => router.push("/profile")}
-            className="flex items-center gap-3 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all"
+            className="flex items-center gap-3 pl-4 pr-2 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all"
           >
             <span className="text-sm uppercase tracking-wider text-gray-300">
               U S E R

@@ -14,7 +14,17 @@ interface Movie {
   overview: string;
 }
 
-export default function Movies() {
+interface MoviesProps {
+  currentPage: number;
+  itemsPerPage: number;
+  onTotalItemsChange: (total: number) => void;
+}
+
+export default function Movies({
+  currentPage,
+  itemsPerPage,
+  onTotalItemsChange,
+}: MoviesProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeNav, setActiveNav] = useState("home");
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -50,10 +60,19 @@ export default function Movies() {
     if (!title) return false;
     return title.toLowerCase().includes(searchTerm.toLowerCase());
   });
-  // No pagination: render all filtered movies
+
+  // Update total items for pagination
+  useEffect(() => {
+    onTotalItemsChange(filteredMovies.length);
+  }, [filteredMovies.length, onTotalItemsChange]);
+
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedMovies = filteredMovies.slice(startIndex, endIndex);
 
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen">
       {/* Main Content */}
       <main className="mx-auto">
         {error && (
@@ -65,7 +84,7 @@ export default function Movies() {
         {!loading && !error && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-              {filteredMovies.map((movie) => (
+              {paginatedMovies.map((movie) => (
                 <div
                   key={movie.id}
                   className="group relative cursor-pointer rounded-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl hover:shadow-black/50"

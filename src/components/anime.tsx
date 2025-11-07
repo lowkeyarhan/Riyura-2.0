@@ -16,7 +16,17 @@ interface Anime {
   media_type?: string;
 }
 
-export default function Anime() {
+interface AnimeProps {
+  currentPage: number;
+  itemsPerPage: number;
+  onTotalItemsChange: (total: number) => void;
+}
+
+export default function Anime({
+  currentPage,
+  itemsPerPage,
+  onTotalItemsChange,
+}: AnimeProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [anime, setAnime] = useState<Anime[]>([]);
@@ -50,8 +60,18 @@ export default function Anime() {
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  // Update total items for pagination
+  useEffect(() => {
+    onTotalItemsChange(filteredAnime.length);
+  }, [filteredAnime.length, onTotalItemsChange]);
+
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAnime = filteredAnime.slice(startIndex, endIndex);
+
   return (
-    <div className="min-h-screen bg-dark">
+    <div className="min-h-screen">
       {/* Main Content */}
       <main className="mx-auto">
         {error && (
@@ -63,7 +83,7 @@ export default function Anime() {
         {!loading && !error && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-              {filteredAnime.map((show) => (
+              {paginatedAnime.map((show) => (
                 <div
                   key={show.id}
                   className="group relative cursor-pointer rounded-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl hover:shadow-black/50"
