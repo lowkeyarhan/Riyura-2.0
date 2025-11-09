@@ -16,13 +16,29 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (!loading && !user && !isPublic) {
-      router.replace("/auth");
+    if (!loading) {
+      if (!user && !isPublic) {
+        router.replace("/auth");
+      } else if (user && isPublic) {
+        router.replace("/home");
+      }
     }
   }, [loading, user, isPublic, router]);
 
+  if (loading) {
+    // Show loading state while auth is being checked
+    return (
+      <div
+        className="min-h-screen grid place-items-center"
+        style={{ backgroundColor: "rgb(7, 9, 16)" }}
+      >
+        <div className="text-white/70 animate-pulse">Loading…</div>
+      </div>
+    );
+  }
+
   if (!user && !isPublic) {
-    // small guard to avoid flashing protected UI client-side
+    // User not logged in and accessing protected page - show redirect message
     return (
       <div
         className="min-h-screen grid place-items-center"
