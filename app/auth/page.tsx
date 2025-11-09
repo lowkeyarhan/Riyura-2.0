@@ -3,9 +3,91 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
+import { auth } from "@/src/lib/firebase";
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const router = useRouter();
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
+        }
+        const cred = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        if (name.trim()) {
+          await updateProfile(cred.user, { displayName: name.trim() });
+        }
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+      router.push("/home");
+    } catch (err: any) {
+      const msg = err?.message || "Authentication failed";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.push("/profile");
+    } catch (err: any) {
+      const msg = err?.message || "Google sign-in failed";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendReset = async () => {
+    setError(null);
+    setInfo(null);
+    if (!email) {
+      setError("Enter your email above first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { sendPasswordResetEmail } = await import("firebase/auth");
+      await sendPasswordResetEmail(auth, email);
+      setInfo("Password reset email sent. Check your inbox.");
+    } catch (err: any) {
+      setError(err?.message || "Failed to send reset email");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center relative overflow-hidden py-12">
@@ -99,7 +181,7 @@ export default function AuthPage() {
             </div>
 
             {/* Form */}
-            <form className="space-y-5">
+            <form className="space-y-5" onSubmit={onSubmit}>
               <AnimatePresence initial={false}>
                 {isSignUp && (
                   <motion.div
@@ -118,6 +200,8 @@ export default function AuthPage() {
                     <input
                       type="text"
                       placeholder="Enter your username"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all text-white placeholder-gray-500"
                       style={{ fontFamily: "Montserrat, sans-serif" }}
                     />
@@ -135,8 +219,11 @@ export default function AuthPage() {
                 <input
                   type="email"
                   placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all text-white placeholder-gray-500"
                   style={{ fontFamily: "Montserrat, sans-serif" }}
+                  required
                 />
               </div>
 
@@ -150,8 +237,11 @@ export default function AuthPage() {
                 <input
                   type="password"
                   placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all text-white placeholder-gray-500"
                   style={{ fontFamily: "Montserrat, sans-serif" }}
+                  required
                 />
               </div>
 
@@ -173,8 +263,11 @@ export default function AuthPage() {
                     <input
                       type="password"
                       placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all text-white placeholder-gray-500"
                       style={{ fontFamily: "Montserrat, sans-serif" }}
+                      required
                     />
                   </motion.div>
                 )}
@@ -202,21 +295,36 @@ export default function AuthPage() {
                         Remember me
                       </span>
                     </label>
-                    <a
-                      href="#"
-                      className="text-orange-500 hover:text-orange-400 transition-colors"
+                    <button
+                      type="button"
+                      onClick={sendReset}
+                      disabled={loading}
+                      className="text-orange-500 hover:text-orange-400 transition-colors disabled:opacity-60"
                       style={{ fontFamily: "Montserrat, sans-serif" }}
                     >
                       Forgot password?
-                    </a>
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
 
+              {/* Error */}
+              {error && (
+                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                  {error}
+                </p>
+              )}
+              {info && (
+                <p className="text-sm text-green-400 bg-green-500/10 border border-green-500/20 rounded-md px-3 py-2">
+                  {info}
+                </p>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
-                className="group relative w-full flex items-center justify-center gap-3 h-14 rounded-full overflow-hidden font-bold tracking-wider uppercase transition-all duration-300 mt-6"
+                disabled={loading}
+                className="group relative w-full flex items-center justify-center gap-3 h-14 rounded-full overflow-hidden font-bold tracking-wider uppercase transition-all duration-300 mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ fontFamily: "'Bruno Ace', sans-serif" }}
               >
                 {/* Animated gradient background */}
@@ -226,7 +334,13 @@ export default function AuthPage() {
                 <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-red-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
                 {/* Content */}
                 <span className="relative z-10 text-white">
-                  {isSignUp ? "Create Account" : "Sign In"}
+                  {loading
+                    ? isSignUp
+                      ? "Creating..."
+                      : "Signing in..."
+                    : isSignUp
+                    ? "Create Account"
+                    : "Sign In"}
                 </span>
 
                 {/* Hover shine effect */}
@@ -251,7 +365,12 @@ export default function AuthPage() {
               </div>
 
               <div className="mt-6 gap-4 flex justify-center items-center">
-                <button className="flex items-center justify-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg hover:border-white/20 transition-all">
+                <button
+                  type="button"
+                  onClick={signInWithGoogle}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg hover:border-white/20 transition-all disabled:opacity-60"
+                >
                   <svg
                     className="w-5 h-5"
                     fill="currentColor"

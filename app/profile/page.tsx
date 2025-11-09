@@ -2,8 +2,38 @@
 
 import Navbar from "@/src/components/navbar";
 import Image from "next/image";
+import { useAuth } from "@/src/hooks/useAuth";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth } from "@/src/lib/firebase";
 
 export default function Page() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth");
+    }
+  }, [loading, user, router]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push("/landing");
+  };
+
+  if (loading || !user) {
+    return (
+      <div
+        className="min-h-screen grid place-items-center text-white"
+        style={{ backgroundColor: "rgb(7, 9, 16)" }}
+      >
+        <div className="animate-pulse text-white/70">Loading profile…</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen text-white"
@@ -21,8 +51,11 @@ export default function Page() {
             <h1 className="text-3xl font-bold">Your Profile</h1>
             <p className="text-white/60">Manage your account and watchlist</p>
           </div>
-          <button className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors text-sm font-semibold">
-            Edit Profile
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors text-sm font-semibold"
+          >
+            Sign Out
           </button>
         </div>
 
@@ -43,8 +76,10 @@ export default function Page() {
                   />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold">Guest User</h3>
-                  <p className="text-white/60 text-sm">guest@riyura.app</p>
+                  <h3 className="text-xl font-semibold">
+                    {user.displayName || "User"}
+                  </h3>
+                  <p className="text-white/60 text-sm">{user.email}</p>
                 </div>
               </div>
 

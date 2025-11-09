@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Search, Bell, Play, Plus, Star, ArrowUp } from "lucide-react";
 import Navbar from "@/src/components/navbar";
 
@@ -38,6 +39,7 @@ const genres = [
 ];
 
 export default function ExplorePage() {
+  const router = useRouter();
   const [selectedGenres, setSelectedGenres] = useState<string[]>(["Action"]);
   const [mediaType, setMediaType] = useState<string>("all");
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -269,7 +271,18 @@ export default function ExplorePage() {
 
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 p-4">
-                    <button className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all duration-200 shadow-lg hover:shadow-red-500/50 transform hover:scale-105">
+                    <button
+                      className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all duration-200 shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
+                      onClick={() => {
+                        const type =
+                          item.media_type || (item.title ? "movie" : "tv");
+                        const path =
+                          type === "movie"
+                            ? `/details/movie/${item.id}`
+                            : `/details/tvshow/${item.id}`;
+                        router.push(path);
+                      }}
+                    >
                       <Play className="w-5 h-5 text-white fill-white ml-1" />
                     </button>
                     <button className="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200">

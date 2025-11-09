@@ -10,22 +10,22 @@ const generateStreamLinks = (tmdbId: string) => {
   return [
     {
       server: "Syntherion",
-      link: `https://vidsrc.cc/v2/embed/movie/${tmdbId}`,
+      link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/movie/${tmdbId}`,
       quality: "1080p",
     },
     {
       server: "IronLink",
-      link: `https://vidlink.pro/movie/${tmdbId}`,
+      link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/movie/${tmdbId}`,
       quality: "1080p",
     },
     {
       server: "Dormannu (ads)",
-      link: `https://player.videasy.net/movie/${tmdbId}`,
+      link: `${process.env.NEXT_PUBLIC_VIDEASY_BASE_URL}/movie/${tmdbId}`,
       quality: "4K",
     },
     {
       server: "Nanovue",
-      link: `https://ythd.org/embed/movie/${tmdbId}`,
+      link: `${process.env.NEXT_PUBLIC_YTHD_BASE_URL}/movie/${tmdbId}`,
       quality: "1080p",
     },
   ];
