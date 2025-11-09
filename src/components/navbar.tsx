@@ -64,7 +64,7 @@ export default function Navbar() {
           {/* Auth / Profile Box */}
           <div
             onClick={handleProfileClick}
-            className="flex items-center gap-3 pl-4 pr-2 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all"
+            className="flex items-center backdrop-blur-md gap-3 pl-4 pr-2 py-2 rounded-lg border border-white/10 border-gradient cursor-pointer hover:border-white/20 transition-all"
           >
             {loading ? (
               <span className="text-sm uppercase tracking-wider text-gray-400 animate-pulse">
@@ -77,7 +77,6 @@ export default function Navbar() {
                 </span>
                 <div className="w-8 h-8 rounded overflow-hidden bg-gray-700 flex items-center justify-center">
                   {avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={avatarUrl}
                       alt={`${firstName || "User"} avatar`}
