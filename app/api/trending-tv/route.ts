@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getCachedData, setCachedData } from "@/src/lib/redis";
+
+const CACHE_KEY = "homepage:trending-tv";
 
 // Define what a single TV show looks like
 interface TVShow {
@@ -18,8 +21,17 @@ interface TMDBResponse {
 }
 
 export async function GET() {
-  const apiKey =
-    process.env.TMDB_API_KEY;
+  console.log("📺 Trending TV shows API called");
+
+  const cachedData = await getCachedData<{ results: TVShow[] }>(CACHE_KEY);
+  if (cachedData) {
+    console.log("✅ Returning cached trending TV shows");
+    return NextResponse.json(cachedData, {
+      headers: { 'X-Cache-Status': 'HIT' }
+    });
+  }
+
+  const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
@@ -28,8 +40,8 @@ export async function GET() {
     );
   }
 
-  // Fetch trending TV shows from TMDB
   try {
+    console.log("🌐 Fetching fresh trending TV shows from TMDB");
     // Build the TMDB API URL for TV shows, excluding animation (genre ID 16)
     const tmdbUrl = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=100&without_genres=16&page=1`;
 
@@ -63,7 +75,12 @@ export async function GET() {
       first_air_date: show.first_air_date,
     }));
 
-    return NextResponse.json({ results: cleanedTVShows });
+    const responseData = { results: cleanedTVShows };
+    await setCachedData(CACHE_KEY, responseData);
+    console.log("✅ Trending TV shows cached and returned");
+    return NextResponse.json(responseData, {
+      headers: { 'X-Cache-Status': 'MISS' }
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Something went wrong fetching TV shows" },

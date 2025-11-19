@@ -59,12 +59,22 @@ export default function MovieDetails() {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
+        console.log(`🎬 Movie Details: Fetching details for ID ${params.id}...`);
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch(`/api/movie/${params.id}`);
         if (!response.ok) {
           throw new Error("Failed to fetch movie details");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get('X-Cache-Status');
+        const loadTime = (endTime - startTime).toFixed(0);
+        if (cacheStatus === 'HIT') {
+          console.log(`✅ Movie Details: Loaded from CACHE in ${loadTime}ms ⚡`);
+        } else {
+          console.log(`✅ Movie Details: Loaded FRESH from API in ${loadTime}ms`);
+        }
         setMovie(data);
         setError(null);
       } catch (err) {
@@ -136,12 +146,10 @@ export default function MovieDetails() {
 
     try {
       if (isWatchlisted) {
-        // Remove from watchlist
         await removeFromWatchlist(user.id, movie.id, "movie");
         setIsWatchlisted(false);
         console.log("✅ Removed from watchlist");
       } else {
-        // Add to watchlist
         await addToWatchlist(user.id, {
           tmdb_id: movie.id,
           title: movie.title,
@@ -153,6 +161,10 @@ export default function MovieDetails() {
         setIsWatchlisted(true);
         console.log("✅ Added to watchlist");
       }
+      
+      const cacheKey = `watchlist_${user.id}`;
+      sessionStorage.removeItem(cacheKey);
+      console.log("💾 Watchlist cache cleared - will refresh on next visit");
     } catch (err) {
       console.error("❌ Error toggling watchlist:", err);
       // Revert the state if there's an error

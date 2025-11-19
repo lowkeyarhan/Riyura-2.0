@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
+import { getCachedData, setCachedData } from "@/src/lib/redis";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const apiKey =
-    process.env.TMDB_API_KEY;
+  const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
@@ -16,6 +16,19 @@ export async function GET(
 
   try {
     const { id: movieId } = await params;
+    const cacheKey = `movie:${movieId}`;
+
+    console.log(`🎬 Movie details API called for ID: ${movieId}`);
+
+    const cachedData = await getCachedData(cacheKey);
+    if (cachedData) {
+      console.log(`✅ Returning cached movie details for ID: ${movieId}`);
+      return NextResponse.json(cachedData, {
+        headers: { "X-Cache-Status": "HIT" },
+      });
+    }
+
+    console.log(`🌐 Fetching fresh movie details from TMDB for ID: ${movieId}`);
 
     // Fetch movie details, credits, and similar movies in parallel
     const [detailsResponse, creditsResponse, similarResponse] =
@@ -49,7 +62,11 @@ export async function GET(
       similar,
     };
 
-    return NextResponse.json(movieData);
+    await setCachedData(cacheKey, movieData);
+    console.log(`✅ Movie details cached and returned for ID: ${movieId}`);
+    return NextResponse.json(movieData, {
+      headers: { "X-Cache-Status": "MISS" },
+    });
   } catch (error) {
     console.error("Error fetching movie data:", error);
     return NextResponse.json(

@@ -30,10 +30,11 @@ export default function WatchlistPage() {
   const [filter, setFilter] = useState<"all" | WatchItemType>("all");
   const [loading, setLoading] = useState(true);
 
+  const CACHE_KEY = `watchlist_${user?.id || "guest"}`;
+
   // Fetch watchlist from database
   useEffect(() => {
     const fetchWatchlist = async () => {
-      // Wait for auth to load first
       if (authLoading) {
         return;
       }
@@ -44,11 +45,31 @@ export default function WatchlistPage() {
         return;
       }
 
+      const cachedData = sessionStorage.getItem(CACHE_KEY);
+      if (cachedData) {
+        try {
+          const parsedData = JSON.parse(cachedData);
+          console.log(
+            "✅ Watchlist loaded from session cache:",
+            parsedData.length,
+            "items"
+          );
+          setItems(parsedData);
+          setLoading(false);
+          return;
+        } catch (err) {
+          console.log("⚠️ Failed to parse cached watchlist, fetching fresh");
+        }
+      }
+
       try {
-        console.log("📋 Fetching watchlist for user:", user.id);
+        console.log(
+          "📋 Fetching fresh watchlist from database for user:",
+          user.id
+        );
+        const startTime = performance.now();
         const watchlistData = await getWatchlist(user.id);
 
-        // Convert WatchlistItem[] to WatchItem[] format
         const formattedItems: WatchItem[] = watchlistData.map((item) => ({
           id: item.tmdb_id,
           dbId: item.id,
@@ -65,11 +86,18 @@ export default function WatchlistPage() {
           episodes: item.number_of_episodes || undefined,
         }));
 
-        console.log("✅ Watchlist loaded:", formattedItems.length, "items");
+        const endTime = performance.now();
+        console.log(
+          `✅ Watchlist loaded from database: ${
+            formattedItems.length
+          } items in ${(endTime - startTime).toFixed(0)}ms`
+        );
+
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(formattedItems));
+        console.log("💾 Watchlist cached in session storage");
         setItems(formattedItems);
       } catch (err) {
         console.error("❌ Error loading watchlist:", err);
-        // Still set loading to false even on error so the page renders
         setItems([]);
       } finally {
         setLoading(false);
@@ -77,7 +105,7 @@ export default function WatchlistPage() {
     };
 
     fetchWatchlist();
-  }, [user, authLoading]);
+  }, [user, authLoading, CACHE_KEY]);
 
   // Filtered items based on selected tab
   const visible = useMemo(() => {
@@ -94,8 +122,12 @@ export default function WatchlistPage() {
     try {
       console.log("🗑️ Removing item from watchlist:", { tmdbId, mediaType });
       await removeFromWatchlist(user.id, tmdbId, mediaType);
-      setItems((prev) => prev.filter((i) => i.id !== tmdbId));
-      console.log("✅ Item removed from watchlist");
+
+      const updatedItems = items.filter((i) => i.id !== tmdbId);
+      setItems(updatedItems);
+
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(updatedItems));
+      console.log("✅ Item removed from watchlist and cache updated");
     } catch (err) {
       console.error("❌ Error removing from watchlist:", err);
     }

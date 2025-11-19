@@ -14,6 +14,7 @@ Riyura 2.0 is a lightweight web app to browse movies and TV shows and save items
 - Supabase (Auth + Postgres) with Row Level Security (RLS)
 - @supabase/supabase-js and @supabase/ssr
 - TMDB API (movie/TV details)
+- Redis (Optional - for homepage caching)
 
 ## Key Features
 
@@ -35,19 +36,39 @@ Riyura 2.0 is a lightweight web app to browse movies and TV shows and save items
 ## Run Locally
 
 1. Copy `.env.example` to `.env.local` and set your Supabase keys and TMDB API key.
-2. Install dependencies:
+2. (Optional) Add `REDIS_URL` to enable homepage caching with 15-minute TTL. Without Redis, the app works fine but fetches fresh data on every request.
+3. Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. Run the development server:
+4. Run the development server:
 
 ```bash
 npm run dev
 ```
 
-4. Open http://localhost:3000
+5. Open http://localhost:3000
+
+## Redis Setup (Optional)
+
+Redis caching is optional and improves homepage performance by caching trending movies, TV shows, and anime for 15 minutes. If `REDIS_URL` is not set, the app will work without caching.
+
+### Local Redis:
+```bash
+# Install Redis (macOS)
+brew install redis
+
+# Start Redis
+redis-server
+
+# Add to .env.local
+REDIS_URL=redis://localhost:6379
+```
+
+### Cloud Redis:
+Use Upstash, Redis Cloud, or any Redis provider and add the connection URL to `.env.local`.
 
 ## Database Migration
 

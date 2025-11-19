@@ -35,12 +35,27 @@ export default function Movies({
   useEffect(() => {
     const fetchMovies = async () => {
       try {
+        console.log("🍿 Movies: Fetching trending movies...");
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch("/api/trending");
         if (!response.ok) {
           throw new Error("Failed to fetch movies");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get("X-Cache-Status");
+        const loadTime = (endTime - startTime).toFixed(0);
+        const count = data?.results?.length || 0;
+        if (cacheStatus === "HIT") {
+          console.log(
+            `✅ Movies: Loaded ${count} movies from CACHE in ${loadTime}ms ⚡`
+          );
+        } else {
+          console.log(
+            `✅ Movies: Loaded ${count} movies FRESH from API in ${loadTime}ms`
+          );
+        }
         setMovies(data.results || []);
         setError(null);
       } catch (err) {

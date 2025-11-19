@@ -131,12 +131,22 @@ export default function Page() {
   useEffect(() => {
     const fetchTVShowDetails = async () => {
       try {
+        console.log(`📺 TV Show Player: Fetching details for ID ${tvShowId}...`);
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch(`/api/tvshow/${tvShowId}`);
         if (!response.ok) {
           throw new Error("Failed to fetch TV show details");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get('X-Cache-Status');
+        const loadTime = (endTime - startTime).toFixed(0);
+        if (cacheStatus === 'HIT') {
+          console.log(`✅ TV Show Player: Loaded from CACHE in ${loadTime}ms ⚡`);
+        } else {
+          console.log(`✅ TV Show Player: Loaded FRESH from API in ${loadTime}ms`);
+        }
         setTvShow(data);
       } catch (err) {
         console.error("Error fetching TV show:", err);

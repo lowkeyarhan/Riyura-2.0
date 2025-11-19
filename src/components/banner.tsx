@@ -56,17 +56,30 @@ export default function Banner() {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
+        console.log("🎬 Banner: Fetching trending movies...");
+        const startTime = performance.now();
         setLoading(true);
         setError(null);
         const response = await fetch("/api/trending", { cache: "no-store" });
 
-        // Check if request was successful
         if (!response.ok) {
           throw new Error(`Failed to load movies (${response.status})`);
         }
 
-        // Parse the JSON data
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get("X-Cache-Status");
+        const loadTime = (endTime - startTime).toFixed(0);
+        const count = data?.results?.length || 0;
+        if (cacheStatus === "HIT") {
+          console.log(
+            `✅ Banner: Loaded ${count} movies from CACHE in ${loadTime}ms ⚡`
+          );
+        } else {
+          console.log(
+            `✅ Banner: Loaded ${count} movies FRESH from API in ${loadTime}ms`
+          );
+        }
 
         setMovies(Array.isArray(data?.results) ? data.results : []);
       } catch (error: any) {

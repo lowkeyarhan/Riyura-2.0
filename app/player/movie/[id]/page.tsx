@@ -98,12 +98,24 @@ export default function Page() {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
+        console.log(`🎬 Movie Player: Fetching details for ID ${movieId}...`);
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch(`/api/movie/${movieId}`);
         if (!response.ok) {
           throw new Error("Failed to fetch movie details");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get("X-Cache-Status");
+        const loadTime = (endTime - startTime).toFixed(0);
+        if (cacheStatus === "HIT") {
+          console.log(`✅ Movie Player: Loaded from CACHE in ${loadTime}ms ⚡`);
+        } else {
+          console.log(
+            `✅ Movie Player: Loaded FRESH from API in ${loadTime}ms`
+          );
+        }
         setMovie(data);
       } catch (err) {
         console.error("Error fetching movie:", err);

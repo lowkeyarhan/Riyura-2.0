@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getCachedData, setCachedData } from "@/src/lib/redis";
+
+const CACHE_KEY = "homepage:trending-movies";
 
 // Define what a single movie looks like
 interface Movie {
@@ -20,10 +23,18 @@ interface TMDBResponse {
 }
 
 export async function GET() {
-  const apiKey =
-    process.env.TMDB_API_KEY;
+  console.log("🎬 Trending movies API called");
 
-  // Check if API key exists
+  const cachedData = await getCachedData<{ results: Movie[] }>(CACHE_KEY);
+  if (cachedData) {
+    console.log("✅ Returning cached trending movies");
+    return NextResponse.json(cachedData, {
+      headers: { "X-Cache-Status": "HIT" },
+    });
+  }
+
+  const apiKey = process.env.TMDB_API_KEY;
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing TMDB_API_KEY in environment variables" },
@@ -31,8 +42,8 @@ export async function GET() {
     );
   }
 
-  // STEP 2: Fetch trending movies from TMDB
   try {
+    console.log("🌐 Fetching fresh trending movies from TMDB");
     // Build the TMDB API URL
     const tmdbUrl = `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`;
 
@@ -70,8 +81,12 @@ export async function GET() {
         }))
       : [];
 
-    // STEP 6: Send the cleaned data back to the frontend
-    return NextResponse.json({ results: cleanedMovies });
+    const responseData = { results: cleanedMovies };
+    await setCachedData(CACHE_KEY, responseData);
+    console.log("✅ Trending movies cached and returned");
+    return NextResponse.json(responseData, {
+      headers: { 'X-Cache-Status': 'MISS' }
+    });
   } catch (error: any) {
     // STEP 7: Handle any unexpected errors
     return NextResponse.json(

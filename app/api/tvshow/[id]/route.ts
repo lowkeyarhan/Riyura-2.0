@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCachedData, setCachedData } from "@/src/lib/redis";
 
 export async function GET(
   request: Request,
@@ -15,6 +16,21 @@ export async function GET(
 
   try {
     const { id: tvShowId } = await params;
+    const cacheKey = `tvshow:${tvShowId}`;
+
+    console.log(`📺 TV show details API called for ID: ${tvShowId}`);
+
+    const cachedData = await getCachedData(cacheKey);
+    if (cachedData) {
+      console.log(`✅ Returning cached TV show details for ID: ${tvShowId}`);
+      return NextResponse.json(cachedData, {
+        headers: { "X-Cache-Status": "HIT" },
+      });
+    }
+
+    console.log(
+      `🌐 Fetching fresh TV show details from TMDB for ID: ${tvShowId}`
+    );
 
     // Fetch TV show details, credits, and similar shows in parallel
     const [detailsResponse, creditsResponse, similarResponse] =
@@ -48,7 +64,11 @@ export async function GET(
       similar,
     };
 
-    return NextResponse.json(tvShowData);
+    await setCachedData(cacheKey, tvShowData);
+    console.log(`✅ TV show details cached and returned for ID: ${tvShowId}`);
+    return NextResponse.json(tvShowData, {
+      headers: { "X-Cache-Status": "MISS" },
+    });
   } catch (error) {
     console.error("Error fetching TV show data:", error);
     return NextResponse.json(

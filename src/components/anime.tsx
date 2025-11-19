@@ -36,12 +36,27 @@ export default function Anime({
   useEffect(() => {
     const fetchAnime = async () => {
       try {
+        console.log("🎌 Anime: Fetching trending anime...");
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch("/api/trending-anime");
         if (!response.ok) {
           throw new Error("Failed to fetch anime");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get("X-Cache-Status");
+        const loadTime = (endTime - startTime).toFixed(0);
+        const count = data?.results?.length || 0;
+        if (cacheStatus === "HIT") {
+          console.log(
+            `✅ Anime: Loaded ${count} anime from CACHE in ${loadTime}ms ⚡`
+          );
+        } else {
+          console.log(
+            `✅ Anime: Loaded ${count} anime FRESH from API in ${loadTime}ms`
+          );
+        }
         setAnime(data.results || []);
         setError(null);
       } catch (err) {

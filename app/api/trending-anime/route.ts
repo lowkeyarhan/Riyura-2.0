@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getCachedData, setCachedData } from "@/src/lib/redis";
+
+const CACHE_KEY = "homepage:trending-anime";
 
 // Define what a single anime looks like
 interface Anime {
@@ -22,10 +25,18 @@ interface TMDBResponse {
 }
 
 export async function GET() {
-  const apiKey =
-    process.env.TMDB_API_KEY;
+  console.log("🎌 Trending anime API called");
 
-  // Check if API key exists
+  const cachedData = await getCachedData<{ results: Anime[] }>(CACHE_KEY);
+  if (cachedData) {
+    console.log("✅ Returning cached trending anime");
+    return NextResponse.json(cachedData, {
+      headers: { 'X-Cache-Status': 'HIT' }
+    });
+  }
+
+  const apiKey = process.env.TMDB_API_KEY;
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing TMDB_API_KEY in environment variables" },
@@ -33,8 +44,8 @@ export async function GET() {
     );
   }
 
-  // Fetch anime (animated TV shows and movies) from TMDB
   try {
+    console.log("🌐 Fetching fresh trending anime from TMDB");
     // Fetch both TV shows and movies with animation genre
     const [tvResponse, movieResponse] = await Promise.all([
       fetch(
@@ -90,8 +101,12 @@ export async function GET() {
       media_type: show.media_type,
     }));
 
-    // Send the cleaned data back to the frontend
-    return NextResponse.json({ results: cleanedAnime });
+    const responseData = { results: cleanedAnime };
+    await setCachedData(CACHE_KEY, responseData);
+    console.log("✅ Trending anime cached and returned");
+    return NextResponse.json(responseData, {
+      headers: { 'X-Cache-Status': 'MISS' }
+    });
   } catch (error: any) {
     // Handle any unexpected errors
     return NextResponse.json(

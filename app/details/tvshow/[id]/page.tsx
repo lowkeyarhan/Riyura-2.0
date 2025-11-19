@@ -80,12 +80,28 @@ export default function TVShowDetails() {
   useEffect(() => {
     const fetchTVShowDetails = async () => {
       try {
+        console.log(
+          `📺 TV Show Details: Fetching details for ID ${params.id}...`
+        );
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch(`/api/tvshow/${params.id}`);
         if (!response.ok) {
           throw new Error("Failed to fetch TV show details");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get("X-Cache-Status");
+        const loadTime = (endTime - startTime).toFixed(0);
+        if (cacheStatus === "HIT") {
+          console.log(
+            `✅ TV Show Details: Loaded from CACHE in ${loadTime}ms ⚡`
+          );
+        } else {
+          console.log(
+            `✅ TV Show Details: Loaded FRESH from API in ${loadTime}ms`
+          );
+        }
         setTVShow(data);
         setError(null);
       } catch (err) {
@@ -159,12 +175,10 @@ export default function TVShowDetails() {
 
     try {
       if (isWatchlisted) {
-        // Remove from watchlist
         await removeFromWatchlist(user.id, tvShow.id, "tv");
         setIsWatchlisted(false);
         console.log("✅ Removed from watchlist");
       } else {
-        // Add to watchlist
         await addToWatchlist(user.id, {
           tmdb_id: tvShow.id,
           title: tvShow.name,
@@ -178,6 +192,10 @@ export default function TVShowDetails() {
         setIsWatchlisted(true);
         console.log("✅ Added to watchlist");
       }
+
+      const cacheKey = `watchlist_${user.id}`;
+      sessionStorage.removeItem(cacheKey);
+      console.log("💾 Watchlist cache cleared - will refresh on next visit");
     } catch (err) {
       console.error("❌ Error toggling watchlist:", err);
       // Revert the state if there's an error

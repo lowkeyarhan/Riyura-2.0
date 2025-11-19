@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 
@@ -18,7 +19,11 @@ export default function Navbar() {
   return (
     <nav className="absolute top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
       <div className="px-8 md:px-16 lg:px-20 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0 cursor-pointer">
+        <Link
+          href="/home"
+          prefetch={true}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0 cursor-pointer"
+        >
           <img src="/logo.png" alt="Riyura Logo" className="h-8 w-8" />
           <span
             className="text-white font-bold text-xl"
@@ -26,38 +31,42 @@ export default function Navbar() {
           >
             RIYURA
           </span>
-        </div>
+        </Link>
 
         {/* Center Nav Links */}
         <div className="hidden md:flex items-center justify-center gap-12 text-sm uppercase tracking-wider text-gray-300 flex-1">
-          <button
-            onClick={() => router.push("/home")}
+          <Link
+            href="/home"
+            prefetch={true}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             H O M E
-          </button>
-          <button
-            onClick={() => router.push("/watchlist")}
+          </Link>
+          <Link
+            href="/watchlist"
+            prefetch={true}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             W A T C H L I S T
-          </button>
-          <button
-            onClick={() => router.push("/search")}
+          </Link>
+          <Link
+            href="/search"
+            prefetch={true}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             S E A R C H
-          </button>
-          <button
-            onClick={() => router.push("/explore")}
+          </Link>
+          <Link
+            href="/explore"
+            prefetch={true}
             className="hover:text-white transition-colors cursor-pointer"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             E X P L O R E
-          </button>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">

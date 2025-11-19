@@ -34,12 +34,23 @@ export default function TVShows({
   useEffect(() => {
     const fetchTVShows = async () => {
       try {
+        console.log('📺 TV Shows: Fetching trending shows...');
+        const startTime = performance.now();
         setLoading(true);
         const response = await fetch("/api/trending-tv");
         if (!response.ok) {
           throw new Error("Failed to fetch TV shows");
         }
         const data = await response.json();
+        const endTime = performance.now();
+        const cacheStatus = response.headers.get('X-Cache-Status');
+        const loadTime = (endTime - startTime).toFixed(0);
+        const count = data?.results?.length || 0;
+        if (cacheStatus === 'HIT') {
+          console.log(`✅ TV Shows: Loaded ${count} shows from CACHE in ${loadTime}ms ⚡`);
+        } else {
+          console.log(`✅ TV Shows: Loaded ${count} shows FRESH from API in ${loadTime}ms`);
+        }
         setTVShows(data.results || []);
         setError(null);
       } catch (err) {
