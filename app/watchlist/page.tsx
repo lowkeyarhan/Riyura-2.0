@@ -240,7 +240,12 @@ export default function WatchlistPage() {
                 className="group bg-white/[0.1] rounded-xl flex flex-col h-full"
               >
                 {/* Poster */}
-                <div className="relative aspect-2/3 rounded-t-xl overflow-hidden cursor-pointer">
+                <div
+                  className="relative aspect-2/3 rounded-t-xl overflow-hidden cursor-pointer"
+                  onClick={() =>
+                    router.push(`/details/${item.type}/${item.id}`)
+                  }
+                >
                   <Image
                     src={item.poster || "/placeholder.jpg"}
                     alt={item.title}

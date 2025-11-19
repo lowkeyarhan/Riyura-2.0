@@ -1,7 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCachedData, setCachedData } from "@/src/lib/redis";
-
-const CACHE_KEY = "homepage:trending-anime";
 
 // Define what a single anime looks like
 interface Anime {
@@ -26,15 +23,6 @@ interface TMDBResponse {
 
 export async function GET() {
   console.log("🎌 Trending anime API called");
-
-  const cachedData = await getCachedData<{ results: Anime[] }>(CACHE_KEY);
-  if (cachedData) {
-    console.log("✅ Returning cached trending anime");
-    return NextResponse.json(cachedData, {
-      headers: { 'X-Cache-Status': 'HIT' }
-    });
-  }
-
   const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
@@ -102,11 +90,8 @@ export async function GET() {
     }));
 
     const responseData = { results: cleanedAnime };
-    await setCachedData(CACHE_KEY, responseData);
-    console.log("✅ Trending anime cached and returned");
-    return NextResponse.json(responseData, {
-      headers: { 'X-Cache-Status': 'MISS' }
-    });
+    console.log("✅ Trending anime fetched and returned");
+    return NextResponse.json(responseData);
   } catch (error: any) {
     // Handle any unexpected errors
     return NextResponse.json(

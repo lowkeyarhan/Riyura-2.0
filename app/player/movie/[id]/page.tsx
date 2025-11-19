@@ -98,6 +98,32 @@ export default function Page() {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
+        const cacheKey = `movie_details_${movieId}`;
+        const cached = sessionStorage.getItem(cacheKey);
+
+        if (cached) {
+          try {
+            const { data, timestamp } = JSON.parse(cached);
+            const age = Date.now() - timestamp;
+            const fifteenMinutes = 15 * 60 * 1000;
+
+            if (age < fifteenMinutes) {
+              console.log(
+                `✅ Movie Player: Loaded from SESSION CACHE (${Math.floor(
+                  age / 1000
+                )}s old) ⚡`
+              );
+              setMovie(data);
+              setLoading(false);
+              return;
+            } else {
+              sessionStorage.removeItem(cacheKey);
+            }
+          } catch (e) {
+            sessionStorage.removeItem(cacheKey);
+          }
+        }
+
         console.log(`🎬 Movie Player: Fetching details for ID ${movieId}...`);
         const startTime = performance.now();
         setLoading(true);
@@ -107,15 +133,17 @@ export default function Page() {
         }
         const data = await response.json();
         const endTime = performance.now();
-        const cacheStatus = response.headers.get("X-Cache-Status");
         const loadTime = (endTime - startTime).toFixed(0);
-        if (cacheStatus === "HIT") {
-          console.log(`✅ Movie Player: Loaded from CACHE in ${loadTime}ms ⚡`);
-        } else {
-          console.log(
-            `✅ Movie Player: Loaded FRESH from API in ${loadTime}ms`
-          );
-        }
+        console.log(`✅ Movie Player: Loaded FRESH from API in ${loadTime}ms`);
+
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data,
+            timestamp: Date.now(),
+          })
+        );
+
         setMovie(data);
       } catch (err) {
         console.error("Error fetching movie:", err);
@@ -152,7 +180,7 @@ export default function Page() {
 
   return (
     <div
-      className="h-screen text-white"
+      className="min-h-screen text-white"
       style={{
         backgroundColor: "rgb(7, 9, 16)",
         fontFamily: "Be Vietnam Pro, sans-serif",
@@ -160,7 +188,7 @@ export default function Page() {
     >
       <Navbar />
 
-      <div className="relative px-4 sm:px-6 lg:px-16 pt-24 pb-12 space-y-6">
+      <div className="relative px-4 sm:px-6 lg:px-16 pt-24 pb-8 space-y-6">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content - Left Side */}
           <div className="lg:col-span-2 space-y-6">
@@ -197,7 +225,7 @@ export default function Page() {
           </div>
 
           {/* Movie Info - Right Sidebar */}
-          <div className="flex flex-col space-y-6">
+          <div className="flex flex-col space-y-6 flex-shrink-0">
             {/* Movie Title & Rating */}
             <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
               <h1 className="text-3xl font-bold text-white mb-4">
@@ -248,7 +276,7 @@ export default function Page() {
 
             {/* Overview */}
             {movie?.overview && (
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex-grow">
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
                 <h3 className="text-xl font-bold text-white mb-4">Overview</h3>
                 <p className="text-white/70 leading-relaxed text-base">
                   {movie.overview}

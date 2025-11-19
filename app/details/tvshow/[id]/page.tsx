@@ -80,6 +80,37 @@ export default function TVShowDetails() {
   useEffect(() => {
     const fetchTVShowDetails = async () => {
       try {
+        const cacheKey = `tvshow_details_${params.id}`;
+        const cached = sessionStorage.getItem(cacheKey);
+
+        if (cached) {
+          try {
+            const { data, timestamp } = JSON.parse(cached);
+            const age = Date.now() - timestamp;
+            const fifteenMinutes = 15 * 60 * 1000;
+
+            if (age < fifteenMinutes) {
+              console.log(
+                `✅ TV Show Details: Loaded from SESSION CACHE (${Math.floor(
+                  age / 1000
+                )}s old) ⚡`
+              );
+              setTVShow(data);
+              setLoading(false);
+              return;
+            } else {
+              console.log(
+                `⚠️ TV Show Details: Cache expired (${Math.floor(
+                  age / 1000
+                )}s old), fetching fresh`
+              );
+              sessionStorage.removeItem(cacheKey);
+            }
+          } catch (e) {
+            sessionStorage.removeItem(cacheKey);
+          }
+        }
+
         console.log(
           `📺 TV Show Details: Fetching details for ID ${params.id}...`
         );
@@ -91,17 +122,20 @@ export default function TVShowDetails() {
         }
         const data = await response.json();
         const endTime = performance.now();
-        const cacheStatus = response.headers.get("X-Cache-Status");
         const loadTime = (endTime - startTime).toFixed(0);
-        if (cacheStatus === "HIT") {
-          console.log(
-            `✅ TV Show Details: Loaded from CACHE in ${loadTime}ms ⚡`
-          );
-        } else {
-          console.log(
-            `✅ TV Show Details: Loaded FRESH from API in ${loadTime}ms`
-          );
-        }
+        console.log(
+          `✅ TV Show Details: Loaded FRESH from API in ${loadTime}ms`
+        );
+
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data,
+            timestamp: Date.now(),
+          })
+        );
+        console.log(`💾 TV Show Details: Cached in session (15min TTL)`);
+
         setTVShow(data);
         setError(null);
       } catch (err) {
@@ -546,6 +580,7 @@ export default function TVShowDetails() {
                         src={`https://image.tmdb.org/t/p/w500${person.profile_path}`}
                         alt={person.name}
                         fill
+                        sizes="180px"
                         className="object-cover"
                       />
                     ) : (
@@ -597,6 +632,7 @@ export default function TVShowDetails() {
                           src={`https://image.tmdb.org/t/p/w500${season.poster_path}`}
                           alt={season.name}
                           fill
+                          sizes="112px"
                           className="object-cover"
                         />
                       ) : (
@@ -661,6 +697,7 @@ export default function TVShowDetails() {
                       src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
                       alt={similar.name}
                       fill
+                      sizes="(max-width: 640px) 150px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
                     />
                   </div>

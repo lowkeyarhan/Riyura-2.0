@@ -34,23 +34,48 @@ export default function TVShows({
   useEffect(() => {
     const fetchTVShows = async () => {
       try {
-        console.log('📺 TV Shows: Fetching trending shows...');
         const startTime = performance.now();
         setLoading(true);
+
+        const cacheKey = "homepage:trending-tv";
+        const cached = localStorage.getItem(cacheKey);
+
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+          const fifteenMinutes = 15 * 60 * 1000;
+
+          if (age < fifteenMinutes) {
+            const endTime = performance.now();
+            const loadTime = (endTime - startTime).toFixed(0);
+            console.log(
+              `✅ TV Shows: Loaded ${data.results.length} shows from CACHE in ${loadTime}ms ⚡`
+            );
+            setTVShows(data.results || []);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+        }
+
+        console.log("📺 TV Shows: Fetching trending shows...");
         const response = await fetch("/api/trending-tv");
         if (!response.ok) {
           throw new Error("Failed to fetch TV shows");
         }
         const data = await response.json();
         const endTime = performance.now();
-        const cacheStatus = response.headers.get('X-Cache-Status');
         const loadTime = (endTime - startTime).toFixed(0);
         const count = data?.results?.length || 0;
-        if (cacheStatus === 'HIT') {
-          console.log(`✅ TV Shows: Loaded ${count} shows from CACHE in ${loadTime}ms ⚡`);
-        } else {
-          console.log(`✅ TV Shows: Loaded ${count} shows FRESH from API in ${loadTime}ms`);
-        }
+
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ data, timestamp: Date.now() })
+        );
+        console.log(
+          `✅ TV Shows: Loaded ${count} shows FRESH from API in ${loadTime}ms`
+        );
+
         setTVShows(data.results || []);
         setError(null);
       } catch (err) {

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCachedData, setCachedData } from "@/src/lib/redis";
 
 export async function GET(
   request: Request,
@@ -16,19 +15,9 @@ export async function GET(
 
   try {
     const { id: movieId } = await params;
-    const cacheKey = `movie:${movieId}`;
 
     console.log(`🎬 Movie details API called for ID: ${movieId}`);
-
-    const cachedData = await getCachedData(cacheKey);
-    if (cachedData) {
-      console.log(`✅ Returning cached movie details for ID: ${movieId}`);
-      return NextResponse.json(cachedData, {
-        headers: { "X-Cache-Status": "HIT" },
-      });
-    }
-
-    console.log(`🌐 Fetching fresh movie details from TMDB for ID: ${movieId}`);
+    console.log(`🌐 Fetching movie details from TMDB for ID: ${movieId}`);
 
     // Fetch movie details, credits, and similar movies in parallel
     const [detailsResponse, creditsResponse, similarResponse] =
@@ -62,11 +51,8 @@ export async function GET(
       similar,
     };
 
-    await setCachedData(cacheKey, movieData);
-    console.log(`✅ Movie details cached and returned for ID: ${movieId}`);
-    return NextResponse.json(movieData, {
-      headers: { "X-Cache-Status": "MISS" },
-    });
+    console.log(`✅ Movie details fetched and returned for ID: ${movieId}`);
+    return NextResponse.json(movieData);
   } catch (error) {
     console.error("Error fetching movie data:", error);
     return NextResponse.json(

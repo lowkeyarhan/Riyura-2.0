@@ -190,9 +190,9 @@ export async function isInWatchlist(
     .eq("user_id", userId)
     .eq("tmdb_id", tmdbId)
     .eq("media_type", mediaType)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== "PGRST116") {
+  if (error) {
     console.error("❌ [isInWatchlist] Error:", error.message);
     throw error;
   }

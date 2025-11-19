@@ -36,27 +36,48 @@ export default function Anime({
   useEffect(() => {
     const fetchAnime = async () => {
       try {
-        console.log("🎌 Anime: Fetching trending anime...");
         const startTime = performance.now();
         setLoading(true);
+
+        const cacheKey = "homepage:trending-anime";
+        const cached = localStorage.getItem(cacheKey);
+
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+          const fifteenMinutes = 15 * 60 * 1000;
+
+          if (age < fifteenMinutes) {
+            const endTime = performance.now();
+            const loadTime = (endTime - startTime).toFixed(0);
+            console.log(
+              `✅ Anime: Loaded ${data.results.length} anime from CACHE in ${loadTime}ms ⚡`
+            );
+            setAnime(data.results || []);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+        }
+
+        console.log("🎌 Anime: Fetching trending anime...");
         const response = await fetch("/api/trending-anime");
         if (!response.ok) {
           throw new Error("Failed to fetch anime");
         }
         const data = await response.json();
         const endTime = performance.now();
-        const cacheStatus = response.headers.get("X-Cache-Status");
         const loadTime = (endTime - startTime).toFixed(0);
         const count = data?.results?.length || 0;
-        if (cacheStatus === "HIT") {
-          console.log(
-            `✅ Anime: Loaded ${count} anime from CACHE in ${loadTime}ms ⚡`
-          );
-        } else {
-          console.log(
-            `✅ Anime: Loaded ${count} anime FRESH from API in ${loadTime}ms`
-          );
-        }
+
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ data, timestamp: Date.now() })
+        );
+        console.log(
+          `✅ Anime: Loaded ${count} anime FRESH from API in ${loadTime}ms`
+        );
+
         setAnime(data.results || []);
         setError(null);
       } catch (err) {

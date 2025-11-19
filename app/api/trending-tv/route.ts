@@ -1,7 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCachedData, setCachedData } from "@/src/lib/redis";
-
-const CACHE_KEY = "homepage:trending-tv";
 
 // Define what a single TV show looks like
 interface TVShow {
@@ -22,15 +19,6 @@ interface TMDBResponse {
 
 export async function GET() {
   console.log("📺 Trending TV shows API called");
-
-  const cachedData = await getCachedData<{ results: TVShow[] }>(CACHE_KEY);
-  if (cachedData) {
-    console.log("✅ Returning cached trending TV shows");
-    return NextResponse.json(cachedData, {
-      headers: { 'X-Cache-Status': 'HIT' }
-    });
-  }
-
   const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
@@ -76,11 +64,8 @@ export async function GET() {
     }));
 
     const responseData = { results: cleanedTVShows };
-    await setCachedData(CACHE_KEY, responseData);
-    console.log("✅ Trending TV shows cached and returned");
-    return NextResponse.json(responseData, {
-      headers: { 'X-Cache-Status': 'MISS' }
-    });
+    console.log("✅ Trending TV shows fetched and returned");
+    return NextResponse.json(responseData);
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Something went wrong fetching TV shows" },

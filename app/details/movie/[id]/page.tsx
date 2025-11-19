@@ -59,7 +59,40 @@ export default function MovieDetails() {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        console.log(`🎬 Movie Details: Fetching details for ID ${params.id}...`);
+        const cacheKey = `movie_details_${params.id}`;
+        const cached = sessionStorage.getItem(cacheKey);
+
+        if (cached) {
+          try {
+            const { data, timestamp } = JSON.parse(cached);
+            const age = Date.now() - timestamp;
+            const fifteenMinutes = 15 * 60 * 1000;
+
+            if (age < fifteenMinutes) {
+              console.log(
+                `✅ Movie Details: Loaded from SESSION CACHE (${Math.floor(
+                  age / 1000
+                )}s old) ⚡`
+              );
+              setMovie(data);
+              setLoading(false);
+              return;
+            } else {
+              console.log(
+                `⚠️ Movie Details: Cache expired (${Math.floor(
+                  age / 1000
+                )}s old), fetching fresh`
+              );
+              sessionStorage.removeItem(cacheKey);
+            }
+          } catch (e) {
+            sessionStorage.removeItem(cacheKey);
+          }
+        }
+
+        console.log(
+          `🎬 Movie Details: Fetching details for ID ${params.id}...`
+        );
         const startTime = performance.now();
         setLoading(true);
         const response = await fetch(`/api/movie/${params.id}`);
@@ -68,13 +101,18 @@ export default function MovieDetails() {
         }
         const data = await response.json();
         const endTime = performance.now();
-        const cacheStatus = response.headers.get('X-Cache-Status');
         const loadTime = (endTime - startTime).toFixed(0);
-        if (cacheStatus === 'HIT') {
-          console.log(`✅ Movie Details: Loaded from CACHE in ${loadTime}ms ⚡`);
-        } else {
-          console.log(`✅ Movie Details: Loaded FRESH from API in ${loadTime}ms`);
-        }
+        console.log(`✅ Movie Details: Loaded FRESH from API in ${loadTime}ms`);
+
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data,
+            timestamp: Date.now(),
+          })
+        );
+        console.log(`💾 Movie Details: Cached in session (15min TTL)`);
+
         setMovie(data);
         setError(null);
       } catch (err) {
@@ -161,7 +199,7 @@ export default function MovieDetails() {
         setIsWatchlisted(true);
         console.log("✅ Added to watchlist");
       }
-      
+
       const cacheKey = `watchlist_${user.id}`;
       sessionStorage.removeItem(cacheKey);
       console.log("💾 Watchlist cache cleared - will refresh on next visit");
@@ -482,6 +520,7 @@ export default function MovieDetails() {
                         src={`https://image.tmdb.org/t/p/w500${person.profile_path}`}
                         alt={person.name}
                         fill
+                        sizes="180px"
                         className="object-cover"
                       />
                     ) : (
@@ -531,6 +570,7 @@ export default function MovieDetails() {
                       src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
                       alt={similar.title}
                       fill
+                      sizes="(max-width: 640px) 150px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
                     />
                   </div>

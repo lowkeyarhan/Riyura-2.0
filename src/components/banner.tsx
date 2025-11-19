@@ -56,10 +56,29 @@ export default function Banner() {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        console.log("🎬 Banner: Fetching trending movies...");
         const startTime = performance.now();
         setLoading(true);
         setError(null);
+        
+        const cacheKey = "homepage:trending-movies";
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached);
+          const age = Date.now() - timestamp;
+          const fifteenMinutes = 15 * 60 * 1000;
+          
+          if (age < fifteenMinutes) {
+            const endTime = performance.now();
+            const loadTime = (endTime - startTime).toFixed(0);
+            console.log(`✅ Banner: Loaded ${data.results.length} movies from CACHE in ${loadTime}ms ⚡`);
+            setMovies(data.results);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        console.log("🎬 Banner: Fetching trending movies...");
         const response = await fetch("/api/trending", { cache: "no-store" });
 
         if (!response.ok) {
@@ -68,18 +87,11 @@ export default function Banner() {
 
         const data = await response.json();
         const endTime = performance.now();
-        const cacheStatus = response.headers.get("X-Cache-Status");
         const loadTime = (endTime - startTime).toFixed(0);
         const count = data?.results?.length || 0;
-        if (cacheStatus === "HIT") {
-          console.log(
-            `✅ Banner: Loaded ${count} movies from CACHE in ${loadTime}ms ⚡`
-          );
-        } else {
-          console.log(
-            `✅ Banner: Loaded ${count} movies FRESH from API in ${loadTime}ms`
-          );
-        }
+        
+        localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+        console.log(`✅ Banner: Loaded ${count} movies FRESH from API in ${loadTime}ms`);
 
         setMovies(Array.isArray(data?.results) ? data.results : []);
       } catch (error: any) {

@@ -242,72 +242,79 @@ export default function ExplorePage() {
         {/* Content Grid */}
         <div className="pb-12">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 md:gap-6">
-            {items.map((item, index) => (
-              <div
-                key={`${item.media_type || (item.title ? "movie" : "tv")}-${
-                  item.id
-                }-${index}`}
-                className="group relative rounded-2xl bg-white/[0.1]  hover:bg-white/[0.08] transition-colors cursor-pointer"
-              >
-                <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden">
-                  <img
-                    src={
-                      item.poster_path
-                        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-                        : "/placeholder.jpg"
-                    }
-                    alt={item.title || item.name || "Media poster"}
-                    className="w-full h-full object-cover transition-all duration-300 group-hover:scale-102 group-hover:brightness-75"
-                  />
-                  {/* Bottom gradient for readability */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent" />
-                  {/* Rating badge */}
-                  <div className="absolute left-3 bottom-3 flex items-center gap-1 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm">
-                    <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs text-white font-semibold">
-                      {item.vote_average.toFixed(1)}
-                    </span>
+            {items.map((item, index) => {
+              const type = item.media_type || (item.title ? "movie" : "tv");
+              const detailsPath =
+                type === "movie"
+                  ? `/details/movie/${item.id}`
+                  : `/details/tvshow/${item.id}`;
+
+              return (
+                <div
+                  key={`${type}-${item.id}-${index}`}
+                  className="group relative rounded-2xl bg-white/[0.1]  hover:bg-white/[0.08] transition-colors cursor-pointer"
+                  onClick={() => router.push(detailsPath)}
+                >
+                  <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden">
+                    <img
+                      src={
+                        item.poster_path
+                          ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                          : "/placeholder.jpg"
+                      }
+                      alt={item.title || item.name || "Media poster"}
+                      className="w-full h-full object-cover transition-all duration-300 group-hover:scale-102 group-hover:brightness-75"
+                    />
+                    {/* Bottom gradient for readability */}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent" />
+                    {/* Rating badge */}
+                    <div className="absolute left-3 bottom-3 flex items-center gap-1 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm">
+                      <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                      <span className="text-xs text-white font-semibold">
+                        {item.vote_average.toFixed(1)}
+                      </span>
+                    </div>
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 p-4">
+                      <button
+                        className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all duration-200 shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
+                        onClick={() => {
+                          const type =
+                            item.media_type || (item.title ? "movie" : "tv");
+                          const path =
+                            type === "movie"
+                              ? `/details/movie/${item.id}`
+                              : `/details/tvshow/${item.id}`;
+                          router.push(path);
+                        }}
+                      >
+                        <Play className="w-5 h-5 text-white fill-white ml-1" />
+                      </button>
+                      <button className="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200">
+                        <Plus className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 p-4">
-                    <button
-                      className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all duration-200 shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
-                      onClick={() => {
-                        const type =
-                          item.media_type || (item.title ? "movie" : "tv");
-                        const path =
-                          type === "movie"
-                            ? `/details/movie/${item.id}`
-                            : `/details/tvshow/${item.id}`;
-                        router.push(path);
-                      }}
+                  {/* Movie Info */}
+                  <div className="mt-2 p-3 space-y-1">
+                    <h3
+                      className="text-white text-base font-semibold truncate group-hover:text-red-500 transition-colors duration-200"
+                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                     >
-                      <Play className="w-5 h-5 text-white fill-white ml-1" />
-                    </button>
-                    <button className="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200">
-                      <Plus className="w-5 h-5 text-white" />
-                    </button>
+                      {item.title || item.name}
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      {(item.release_date || item.first_air_date)?.substring(
+                        0,
+                        4
+                      )}
+                    </p>
                   </div>
                 </div>
-
-                {/* Movie Info */}
-                <div className="mt-2 p-3 space-y-1">
-                  <h3
-                    className="text-white text-base font-semibold truncate group-hover:text-red-500 transition-colors duration-200"
-                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                  >
-                    {item.title || item.name}
-                  </h3>
-                  <p className="text-sm text-gray-400">
-                    {(item.release_date || item.first_air_date)?.substring(
-                      0,
-                      4
-                    )}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Loading Skeletons */}
