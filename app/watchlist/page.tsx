@@ -1,115 +1,83 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import Navbar from "@/src/components/navbar";
 import Footer from "@/src/components/footer";
+import { useAuth } from "@/src/hooks/useAuth";
+import { getWatchlist, removeFromWatchlist } from "@/src/lib/database";
+import type { WatchlistItem } from "@/src/lib/database";
 
-type WatchItemType = "movie" | "tv" | "anime";
+type WatchItemType = "movie" | "tv";
 
 interface WatchItem {
   id: number;
+  dbId: number; // Database ID for deletion
   type: WatchItemType;
   title: string;
-  poster: string; // full image url or local placeholder
+  poster: string;
   year?: number;
-  rating?: number; // 0-10 scale originally; we'll show /5
-  seasons?: number; // tv/anime only
+  rating?: number;
+  seasons?: number;
+  episodes?: number;
 }
 
-// Mock data — mixture of movies, tv shows and anime with real TMDB poster paths
-const MOCK_WATCHLIST: WatchItem[] = [
-  {
-    id: 101,
-    type: "movie",
-    title: "Inception",
-    poster: "https://image.tmdb.org/t/p/w500/ljsZTbVsrQSqZgWeep2B1QiDKuh.jpg",
-    year: 2010,
-    rating: 8.4,
-  },
-  {
-    id: 102,
-    type: "tv",
-    title: "Breaking Bad",
-    poster: "https://image.tmdb.org/t/p/w500/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg",
-    year: 2008,
-    rating: 9.5,
-    seasons: 5,
-  },
-  {
-    id: 103,
-    type: "anime",
-    title: "Attack on Titan",
-    poster: "https://image.tmdb.org/t/p/w500/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg",
-    year: 2013,
-    rating: 8.8,
-    seasons: 4,
-  },
-  {
-    id: 104,
-    type: "movie",
-    title: "Interstellar",
-    poster: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-    year: 2014,
-    rating: 8.6,
-  },
-  {
-    id: 105,
-    type: "tv",
-    title: "Stranger Things",
-    poster: "https://image.tmdb.org/t/p/w500/x2LSRK2Cm7MZhjluni1msVJ3wDF.jpg",
-    year: 2016,
-    rating: 8.7,
-    seasons: 4,
-  },
-  {
-    id: 106,
-    type: "anime",
-    title: "Demon Slayer",
-    poster: "https://image.tmdb.org/t/p/w500/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg",
-    year: 2019,
-    rating: 8.6,
-    seasons: 3,
-  },
-  {
-    id: 107,
-    type: "movie",
-    title: "The Dark Knight",
-    poster: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-    year: 2008,
-    rating: 9.0,
-  },
-  {
-    id: 108,
-    type: "tv",
-    title: "The Mandalorian",
-    poster: "https://image.tmdb.org/t/p/w500/eU1i6eHXlzMOlEq0ku1Rzq7Y4wA.jpg",
-    year: 2019,
-    rating: 8.5,
-    seasons: 3,
-  },
-  {
-    id: 109,
-    type: "anime",
-    title: "One Punch Man",
-    poster: "https://image.tmdb.org/t/p/w500/iE3s0lG5QVdEHOEZnoAxjmMtvne.jpg",
-    year: 2015,
-    rating: 8.7,
-    seasons: 2,
-  },
-  {
-    id: 110,
-    type: "movie",
-    title: "Dune",
-    poster: "https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg",
-    year: 2021,
-    rating: 8.0,
-  },
-];
-
 export default function WatchlistPage() {
-  const [items, setItems] = useState<WatchItem[]>(MOCK_WATCHLIST);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const [items, setItems] = useState<WatchItem[]>([]);
   const [filter, setFilter] = useState<"all" | WatchItemType>("all");
+  const [loading, setLoading] = useState(true);
+
+  // Fetch watchlist from database
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      // Wait for auth to load first
+      if (authLoading) {
+        return;
+      }
+
+      if (!user) {
+        console.log("🔒 No user logged in");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log("📋 Fetching watchlist for user:", user.id);
+        const watchlistData = await getWatchlist(user.id);
+
+        // Convert WatchlistItem[] to WatchItem[] format
+        const formattedItems: WatchItem[] = watchlistData.map((item) => ({
+          id: item.tmdb_id,
+          dbId: item.id,
+          type: item.media_type,
+          title: item.title,
+          poster: item.poster_path
+            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+            : "/placeholder.jpg",
+          year: item.release_date
+            ? new Date(item.release_date).getFullYear()
+            : undefined,
+          rating: item.vote || undefined,
+          seasons: item.number_of_seasons || undefined,
+          episodes: item.number_of_episodes || undefined,
+        }));
+
+        console.log("✅ Watchlist loaded:", formattedItems.length, "items");
+        setItems(formattedItems);
+      } catch (err) {
+        console.error("❌ Error loading watchlist:", err);
+        // Still set loading to false even on error so the page renders
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWatchlist();
+  }, [user, authLoading]);
 
   // Filtered items based on selected tab
   const visible = useMemo(() => {
@@ -117,9 +85,55 @@ export default function WatchlistPage() {
     return items.filter((i) => i.type === filter);
   }, [items, filter]);
 
-  const removeItem = (id: number) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = async (tmdbId: number, mediaType: WatchItemType) => {
+    if (!user) {
+      console.log("🔒 No user logged in");
+      return;
+    }
+
+    try {
+      console.log("🗑️ Removing item from watchlist:", { tmdbId, mediaType });
+      await removeFromWatchlist(user.id, tmdbId, mediaType);
+      setItems((prev) => prev.filter((i) => i.id !== tmdbId));
+      console.log("✅ Item removed from watchlist");
+    } catch (err) {
+      console.error("❌ Error removing from watchlist:", err);
+    }
   };
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !loading && !user) {
+      console.log("🔒 Redirecting to auth page...");
+      router.push("/auth");
+    }
+  }, [user, authLoading, loading, router]);
+
+  // Show loading state
+  if (loading || authLoading) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Navbar />
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-white text-2xl">Loading watchlist...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show loading if redirecting (no user)
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black">
+        <Navbar />
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="text-white text-2xl">Redirecting...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -137,21 +151,20 @@ export default function WatchlistPage() {
             className="text-gray-400 text-center max-w-2xl mx-auto text-lg"
             style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
           >
-            Keep track of movies, series, and anime you want to watch
+            Keep track of movies and TV shows you want to watch
           </p>
         </div>
 
         {/* Filter Tabs */}
         <div className="flex justify-center border-b border-white/15 items-center gap-8 mb-12">
           {[
-            { key: "all", label: "All", icon: null },
-            { key: "movie", label: "Movies", icon: null },
-            { key: "tv", label: "Series", icon: null },
-            { key: "anime", label: "Anime", icon: null },
+            { key: "all", label: "All" },
+            { key: "movie", label: "Movies" },
+            { key: "tv", label: "TV Shows" },
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
+              onClick={() => setFilter(tab.key as "all" | WatchItemType)}
               className={`flex items-center gap-2 p-4 transition-all duration-300 text-2xl relative ${
                 filter === tab.key
                   ? "text-red-500"
@@ -230,8 +243,8 @@ export default function WatchlistPage() {
                     )}
                   </div>
 
-                  {/* Rating and Seasons */}
-                  <div className="flex items-center gap-3">
+                  {/* Rating and TV Show Info */}
+                  <div className="flex flex-col gap-1">
                     {item.rating && (
                       <div className="flex items-center gap-1">
                         <span
@@ -242,27 +255,38 @@ export default function WatchlistPage() {
                         </span>
                       </div>
                     )}
-                    {item.seasons && (
-                      <span
-                        className="text-gray-400 text-sm"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                      >
-                        {item.seasons} Season{item.seasons > 1 ? "s" : ""}
-                      </span>
+                    {item.type === "tv" && (item.seasons || item.episodes) && (
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        {item.seasons && (
+                          <span
+                            style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                          >
+                            {item.seasons} Season{item.seasons > 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {item.seasons && item.episodes && <span>•</span>}
+                        {item.episodes && (
+                          <span
+                            style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                          >
+                            {item.episodes} Ep{item.episodes > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
 
-                  {/* Watched Button */}
+                  {/* Remove Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeItem(item.id);
+                      removeItem(item.id, item.type);
                     }}
                     className="mt-2 w-full py-2.5 rounded-lg bg-gray-800/50 hover:bg-red-600 text-white font-medium text-sm transition-all duration-300 border border-gray-700/50 hover:border-red-600"
                     style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    aria-label={`Mark ${item.title} as watched`}
+                    aria-label={`Remove ${item.title} from watchlist`}
                   >
-                    Watched
+                    Remove
                   </button>
                 </div>
               </div>

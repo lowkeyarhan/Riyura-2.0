@@ -6,6 +6,12 @@ import Navbar from "@/src/components/navbar";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/footer";
+import { useAuth } from "@/src/hooks/useAuth";
+import {
+  addToWatchlist,
+  removeFromWatchlist,
+  isInWatchlist,
+} from "@/src/lib/database";
 
 interface Season {
   id: number;
@@ -63,6 +69,7 @@ interface TVShow {
 export default function TVShowDetails() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -93,6 +100,22 @@ export default function TVShowDetails() {
     }
   }, [params.id]);
 
+  // Check if TV show is in watchlist when it loads
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      if (user && tvShow) {
+        try {
+          const inWatchlist = await isInWatchlist(user.id, tvShow.id, "tv");
+          setIsWatchlisted(inWatchlist);
+        } catch (err) {
+          console.error("Error checking watchlist status:", err);
+        }
+      }
+    };
+
+    checkWatchlistStatus();
+  }, [user, tvShow]);
+
   const formatRuntime = (minutes: number[]) => {
     if (!minutes || minutes.length === 0) return "N/A";
     const avgMinutes = minutes[0];
@@ -122,8 +145,44 @@ export default function TVShowDetails() {
     setIsFavorited(!isFavorited);
   };
 
-  const toggleWatchlist = () => {
-    setIsWatchlisted(!isWatchlisted);
+  const toggleWatchlist = async () => {
+    if (!user) {
+      console.log("🔒 User not logged in, redirecting to auth...");
+      router.push("/auth");
+      return;
+    }
+
+    if (!tvShow) {
+      console.error("❌ No TV show data available");
+      return;
+    }
+
+    try {
+      if (isWatchlisted) {
+        // Remove from watchlist
+        await removeFromWatchlist(user.id, tvShow.id, "tv");
+        setIsWatchlisted(false);
+        console.log("✅ Removed from watchlist");
+      } else {
+        // Add to watchlist
+        await addToWatchlist(user.id, {
+          tmdb_id: tvShow.id,
+          title: tvShow.name,
+          media_type: "tv",
+          poster_path: tvShow.poster_path,
+          release_date: tvShow.first_air_date,
+          vote: tvShow.vote_average,
+          number_of_seasons: tvShow.number_of_seasons,
+          number_of_episodes: tvShow.number_of_episodes,
+        });
+        setIsWatchlisted(true);
+        console.log("✅ Added to watchlist");
+      }
+    } catch (err) {
+      console.error("❌ Error toggling watchlist:", err);
+      // Revert the state if there's an error
+      setIsWatchlisted(!isWatchlisted);
+    }
   };
 
   if (loading) {

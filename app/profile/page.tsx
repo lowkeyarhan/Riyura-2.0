@@ -5,8 +5,7 @@ import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/src/lib/firebase";
+import { supabase } from "@/src/lib/supabase";
 
 export default function Page() {
   const { user, loading } = useAuth();
@@ -19,7 +18,7 @@ export default function Page() {
   }, [loading, user, router]);
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.push("/landing");
   };
 
@@ -77,7 +76,9 @@ export default function Page() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {user.displayName || "User"}
+                    {user.user_metadata?.display_name ||
+                      user.user_metadata?.full_name ||
+                      "User"}
                   </h3>
                   <p className="text-white/60 text-sm">{user.email}</p>
                 </div>

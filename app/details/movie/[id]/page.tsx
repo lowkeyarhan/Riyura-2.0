@@ -6,6 +6,12 @@ import Navbar from "@/src/components/navbar";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/footer";
+import { useAuth } from "@/src/hooks/useAuth";
+import {
+  addToWatchlist,
+  removeFromWatchlist,
+  isInWatchlist,
+} from "@/src/lib/database";
 
 interface Movie {
   id: number;
@@ -42,6 +48,7 @@ interface Movie {
 export default function MovieDetails() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -72,6 +79,22 @@ export default function MovieDetails() {
     }
   }, [params.id]);
 
+  // Check if movie is in watchlist when movie loads
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      if (user && movie) {
+        try {
+          const inWatchlist = await isInWatchlist(user.id, movie.id, "movie");
+          setIsWatchlisted(inWatchlist);
+        } catch (err) {
+          console.error("Error checking watchlist status:", err);
+        }
+      }
+    };
+
+    checkWatchlistStatus();
+  }, [user, movie]);
+
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -99,8 +122,42 @@ export default function MovieDetails() {
     setIsFavorited(!isFavorited);
   };
 
-  const toggleWatchlist = () => {
-    setIsWatchlisted(!isWatchlisted);
+  const toggleWatchlist = async () => {
+    if (!user) {
+      console.log("🔒 User not logged in, redirecting to auth...");
+      router.push("/auth");
+      return;
+    }
+
+    if (!movie) {
+      console.error("❌ No movie data available");
+      return;
+    }
+
+    try {
+      if (isWatchlisted) {
+        // Remove from watchlist
+        await removeFromWatchlist(user.id, movie.id, "movie");
+        setIsWatchlisted(false);
+        console.log("✅ Removed from watchlist");
+      } else {
+        // Add to watchlist
+        await addToWatchlist(user.id, {
+          tmdb_id: movie.id,
+          title: movie.title,
+          media_type: "movie",
+          poster_path: movie.poster_path,
+          release_date: movie.release_date,
+          vote: movie.vote_average,
+        });
+        setIsWatchlisted(true);
+        console.log("✅ Added to watchlist");
+      }
+    } catch (err) {
+      console.error("❌ Error toggling watchlist:", err);
+      // Revert the state if there's an error
+      setIsWatchlisted(!isWatchlisted);
+    }
   };
 
   if (loading) {

@@ -4,14 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
-import { auth } from "@/src/lib/firebase";
+import { supabase } from "@/src/lib/supabase";
+import { ensureUserProfile } from "@/src/lib/database";
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -34,18 +28,40 @@ export default function AuthPage() {
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match");
         }
-        const cred = await createUserWithEmailAndPassword(
-          auth,
+
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
-          password
-        );
-        if (name.trim()) {
-          await updateProfile(cred.user, { displayName: name.trim() });
+          password,
+          options: {
+            data: {
+              display_name: name.trim() || undefined,
+              full_name: name.trim() || undefined,
+            },
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        if (data.user) {
+          // Create user profile in database
+          await ensureUserProfile({
+            uid: data.user.id,
+            email: data.user.email!,
+            displayName: name.trim() || null,
+            photoURL: null,
+          });
         }
+
+        setInfo("Account created! Check your email to verify your account.");
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) throw signInError;
+        router.push("/home");
       }
-      router.push("/home");
     } catch (err: any) {
       const msg = err?.message || "Authentication failed";
       setError(msg);
@@ -59,13 +75,17 @@ export default function AuthPage() {
     setInfo(null);
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push("/profile");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
     } catch (err: any) {
       const msg = err?.message || "Google sign-in failed";
       setError(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -79,8 +99,11 @@ export default function AuthPage() {
     }
     setLoading(true);
     try {
-      const { sendPasswordResetEmail } = await import("firebase/auth");
-      await sendPasswordResetEmail(auth, email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
       setInfo("Password reset email sent. Check your inbox.");
     } catch (err: any) {
       setError(err?.message || "Failed to send reset email");

@@ -1,8 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Riyura 2.0
+
+A modern streaming platform built with Next.js, featuring movie and TV show discovery, watchlist management, and user authentication.
+
+## Tech Stack
+
+- **Frontend**: Next.js 16, React 19, TypeScript
+- **Styling**: Tailwind CSS, Framer Motion
+- **Database & Auth**: Supabase (PostgreSQL + Auth)
+- **API**: TMDB (The Movie Database)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ installed
+- A Supabase account ([sign up here](https://supabase.com))
+- TMDB API key ([get one here](https://www.themoviedb.org/settings/api))
+
+### Setup
+
+1. **Clone the repository**
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up Supabase**
+   - Create a new project on [Supabase](https://supabase.com)
+   - Run the SQL schema from `supabase-schema.sql` in the SQL Editor
+   - Enable Email and Google authentication providers
+   - See `MIGRATION_GUIDE.md` for detailed instructions
+
+4. **Configure environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Update `.env.local` with your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+5. **Run the development server**
 
 ```bash
 npm run dev
