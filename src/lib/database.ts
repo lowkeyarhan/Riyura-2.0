@@ -1,6 +1,7 @@
 import { supabase } from "@/src/lib/supabase";
 
-// Profile types
+type MediaType = "movie" | "tv";
+
 export interface Profile {
   id: string;
   display_name: string | null;
@@ -15,7 +16,7 @@ export interface WatchlistItem {
   user_id: string;
   tmdb_id: number;
   title: string;
-  media_type: "movie" | "tv";
+  media_type: MediaType;
   poster_path: string | null;
   release_date: string | null;
   vote: number | null;
@@ -29,12 +30,32 @@ export interface WatchHistoryItem {
   user_id: string;
   tmdb_id: number;
   title: string;
-  media_type: "movie" | "tv";
+  media_type: MediaType;
   poster_path: string | null;
   release_date: string | null;
   duration_sec: number | null;
   watched_at: string;
 }
+
+type WatchlistPayload = {
+  tmdb_id: number;
+  title: string;
+  media_type: MediaType;
+  poster_path: string | null;
+  release_date: string | null;
+  vote: number | null;
+  number_of_seasons?: number | null;
+  number_of_episodes?: number | null;
+};
+
+type WatchHistoryPayload = {
+  tmdb_id: number;
+  title: string;
+  media_type: MediaType;
+  poster_path: string | null;
+  release_date: string | null;
+  duration_sec: number | null;
+};
 
 // Profile Functions --------------------------------------------------------
 export async function ensureUserProfile(user: {
@@ -43,66 +64,43 @@ export async function ensureUserProfile(user: {
   displayName: string | null;
   photoURL: string | null;
 }) {
-  // Check if profile exists
-  const { data: existingProfile, error: fetchError } = await supabase
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.uid)
     .single();
 
-  if (fetchError && fetchError.code !== "PGRST116") {
-    // PGRST116 = "no rows returned", which is expected for new users
-    throw fetchError;
-  }
+  if (error && error.code !== "PGRST116") throw error;
 
-  // Create or update profile
-  if (!existingProfile) {
-    // Create new profile with current login time
-    const profileData = {
+  if (!data) {
+    const profile = {
       id: user.uid,
       email: user.email,
       display_name: user.displayName,
       photo_url: user.photoURL,
-      last_login: new Date().toISOString(),
+      last_login: now,
     };
 
     const { error: insertError } = await supabase
       .from("profiles")
-      .insert(profileData)
+      .insert(profile)
       .select();
 
-    if (insertError) {
-      // If it's a duplicate key error, that's actually fine - it means profile was created
-      if (insertError.code === "23505") {
-        return;
-      }
-      throw insertError;
-    }
-  } else {
-    // Update last_login for existing profile
-    await supabase
-      .from("profiles")
-      .update({ last_login: new Date().toISOString() })
-      .eq("id", user.uid);
+    if (insertError && insertError.code !== "23505") throw insertError;
+    return;
   }
+
+  await supabase
+    .from("profiles")
+    .update({ last_login: now })
+    .eq("id", user.uid);
 }
 
 // Watchlist Functions ------------------------------------------------------
 
 // Add a movie or TV show to watchlist
-export async function addToWatchlist(
-  userId: string,
-  item: {
-    tmdb_id: number;
-    title: string;
-    media_type: "movie" | "tv";
-    poster_path: string | null;
-    release_date: string | null;
-    vote: number | null;
-    number_of_seasons?: number | null;
-    number_of_episodes?: number | null;
-  }
-) {
+export async function addToWatchlist(userId: string, item: WatchlistPayload) {
   console.log("📌 [addToWatchlist] Adding item:", {
     userId,
     tmdb_id: item.tmdb_id,
@@ -138,7 +136,7 @@ export async function addToWatchlist(
 export async function removeFromWatchlist(
   userId: string,
   tmdbId: number,
-  mediaType: "movie" | "tv"
+  mediaType: MediaType
 ) {
   console.log("🗑️ [removeFromWatchlist] Removing item:", {
     userId,
@@ -184,7 +182,7 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
 export async function isInWatchlist(
   userId: string,
   tmdbId: number,
-  mediaType: "movie" | "tv"
+  mediaType: MediaType
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from("watchlist")
@@ -207,7 +205,7 @@ export async function isInWatchlist(
 // Get watchlist by type
 export async function getWatchlistByType(
   userId: string,
-  mediaType: "movie" | "tv"
+  mediaType: MediaType
 ): Promise<WatchlistItem[]> {
   console.log(
     `🎬 [getWatchlistByType] Fetching ${mediaType} watchlist for user:`,
@@ -238,14 +236,7 @@ export async function getWatchlistByType(
 // Add to watch history
 export async function addToWatchHistory(
   userId: string,
-  item: {
-    tmdb_id: number;
-    title: string;
-    media_type: "movie" | "tv";
-    poster_path: string | null;
-    release_date: string | null;
-    duration_sec: number | null;
-  }
+  item: WatchHistoryPayload
 ) {
   const { data, error } = await supabase
     .from("watch_history")

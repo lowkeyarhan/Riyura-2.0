@@ -1,77 +1,78 @@
 # Riyura 2.0
 
-A modern streaming platform built with Next.js, featuring movie and TV show discovery, watchlist management, and user authentication.
+A movie streaming web application built with Next.js, TypeScript and Supabase for authentication and storage.
+
+## Project Description
+
+Riyura 2.0 is a lightweight web app to browse movies and TV shows and save items to your watchlist. It supports Google and email/password authentication via Supabase, maintains user profiles, and stores watchlist and watch history for each user. The app focuses on a clean UI and minimal UX for fast browsing and tracking.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16, React 19, TypeScript
-- **Styling**: Tailwind CSS, Framer Motion
-- **Database & Auth**: Supabase (PostgreSQL + Auth)
-- **API**: TMDB (The Movie Database)
+- Next.js (App Router)
+- React 19 + TypeScript
+- Tailwind CSS
+- Supabase (Auth + Postgres) with Row Level Security (RLS)
+- @supabase/supabase-js and @supabase/ssr
+- TMDB API (movie/TV details)
 
-## Getting Started
+## Key Features
 
-### Prerequisites
+- Email & Google sign-in (Supabase)
+- Profile creation and last-login tracking
+- Add / Remove items to watchlist (movies & TV)
+- Watch history recording
+- Watchlist page with filters (All, Movies, TV Shows)
+- TV shows show seasons & episode counts
+- Client-side OAuth callback handling (PKCE)
 
-- Node.js 18+ installed
-- A Supabase account ([sign up here](https://supabase.com))
-- TMDB API key ([get one here](https://www.themoviedb.org/settings/api))
+## Privacy & Security
 
-### Setup
+- Authentication and user profiles are handled by Supabase; no password or OAuth secrets are stored in the repo.
+- Row Level Security (RLS) is enabled on the `watchlist` and `watch_history` tables so users can only read/write their own data.
+- Use environment variables for Supabase keys and do not commit `.env` files to the repository.
+- Minimize console logs in production; only critical errors are logged currently.
 
-1. **Clone the repository**
+## Run Locally
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+1. Copy `.env.example` to `.env.local` and set your Supabase keys and TMDB API key.
+2. Install dependencies:
 
-3. **Set up Supabase**
-   - Create a new project on [Supabase](https://supabase.com)
-   - Run the SQL schema from `supabase-schema.sql` in the SQL Editor
-   - Enable Email and Google authentication providers
-   - See `MIGRATION_GUIDE.md` for detailed instructions
+```bash
+npm install
+```
 
-4. **Configure environment variables**
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Update `.env.local` with your credentials:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-5. **Run the development server**
+3. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Migration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you're running the project locally and you've already created the `watchlist` table, apply the migration to add seasons/episodes:
 
-## Learn More
+```sql
+ALTER TABLE watchlist
+ADD COLUMN IF NOT EXISTS number_of_seasons INT,
+ADD COLUMN IF NOT EXISTS number_of_episodes INT;
 
-To learn more about Next.js, take a look at the following resources:
+COMMENT ON COLUMN watchlist.number_of_seasons IS 'Number of seasons (TV shows only)';
+COMMENT ON COLUMN watchlist.number_of_episodes IS 'Number of episodes (TV shows only)';
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Upcoming Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Public/private profiles and profile sharing
+- Sync watchlist with external services (TMDB favorites, watch providers)
+- Improved watch history UI and playback progress tracking
+- Mobile apps and offline caching
 
-## Deploy on Vercel
+## Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Contributions are welcome — create a pull request with a small, focused change. Include clear descriptions in PR and run tests (if any) before opening.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Thank you for checking out Riyura 2.0!

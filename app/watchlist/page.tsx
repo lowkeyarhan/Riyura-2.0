@@ -205,7 +205,7 @@ export default function WatchlistPage() {
             {visible.map((item) => (
               <div
                 key={item.id}
-                className="group bg-white/[0.1] rounded-xl flex flex-col"
+                className="group bg-white/[0.1] rounded-xl flex flex-col h-full"
               >
                 {/* Poster */}
                 <div className="relative aspect-2/3 rounded-t-xl overflow-hidden cursor-pointer">
@@ -219,7 +219,7 @@ export default function WatchlistPage() {
                 </div>
 
                 {/* Info Section */}
-                <div className="flex p-3 flex-col gap-2">
+                <div className="flex p-3 flex-col gap-2 flex-grow">
                   {/* Title */}
                   <h3
                     className="text-white font-semibold text-base leading-tight line-clamp-2  transition-colors"
@@ -275,20 +275,20 @@ export default function WatchlistPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Remove Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeItem(item.id, item.type);
-                    }}
-                    className="mt-2 w-full py-2.5 rounded-lg bg-gray-800/50 hover:bg-red-600 text-white font-medium text-sm transition-all duration-300 border border-gray-700/50 hover:border-red-600"
-                    style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    aria-label={`Remove ${item.title} from watchlist`}
-                  >
-                    Remove
-                  </button>
                 </div>
+
+                {/* Remove Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeItem(item.id, item.type);
+                  }}
+                  className="m-3 mt-0 w-auto py-2.5 rounded-lg bg-gray-800/50 hover:bg-red-600 text-white font-medium text-sm transition-all duration-300 border border-gray-700/50 hover:border-red-600"
+                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                  aria-label={`Remove ${item.title} from watchlist`}
+                >
+                  Remove
+                </button>
               </div>
             ))}
           </div>
