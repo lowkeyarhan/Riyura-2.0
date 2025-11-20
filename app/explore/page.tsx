@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Plus, Star, ArrowUp, X } from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useNotification } from "@/src/lib/NotificationContext";
 import { addToWatchlist } from "@/src/lib/database";
 
 // --- Constants ---
@@ -128,6 +129,7 @@ const MovieCard = ({
 export default function ExplorePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { addNotification } = useNotification();
   const [selectedGenres, setSelectedGenres] = useState<string[]>(["Action"]);
   const [mediaType, setMediaType] = useState("all");
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -155,8 +157,10 @@ export default function ExplorePage() {
 
       await addToWatchlist(user.id, watchlistItem);
       console.log("Added to watchlist:", watchlistItem.title);
+      addNotification(`${watchlistItem.title} added to watchlist`, "success");
     } catch (error) {
       console.error("Failed to add to watchlist:", error);
+      addNotification("Failed to add to watchlist", "error");
     }
   };
 

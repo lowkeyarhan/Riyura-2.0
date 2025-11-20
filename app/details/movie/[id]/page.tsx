@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/footer";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useNotification } from "@/src/lib/NotificationContext";
 import {
   addToWatchlist,
   removeFromWatchlist,
@@ -67,6 +68,7 @@ export default function MovieDetails() {
   const router = useRouter();
   const params = useParams();
   const { user } = useAuth();
+  const { addNotification } = useNotification();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -157,6 +159,7 @@ export default function MovieDetails() {
           vote: movie.vote_average,
         });
         console.log("✅ Added to watchlist");
+        addNotification(`${movie.title} added to watchlist`, "success");
       }
 
       setIsWatchlisted(!isWatchlisted);
@@ -165,6 +168,7 @@ export default function MovieDetails() {
     } catch (err) {
       console.error("❌ Error toggling watchlist:", err);
       setIsWatchlisted(!isWatchlisted);
+      addNotification("Failed to update watchlist", "error");
     }
   };
 
