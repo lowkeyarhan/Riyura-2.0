@@ -1,28 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Calendar, Star, Clock, Wifi } from "lucide-react";
+import { useAuth } from "@/src/hooks/useAuth";
+import { supabase } from "@/src/lib/supabase";
 
 // Generate stream links based on movie ID
 const generateStreamLinks = (tmdbId: string) => {
   return [
     {
+      id: "syntherionmovie",
       server: "Syntherion",
       link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/movie/${tmdbId}`,
       quality: "1080p",
     },
     {
+      id: "ironlinkmovie",
       server: "IronLink",
       link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/movie/${tmdbId}`,
       quality: "1080p",
     },
     {
+      id: "dormannumovie",
       server: "Dormannu (ads)",
       link: `${process.env.NEXT_PUBLIC_VIDEASY_BASE_URL}/movie/${tmdbId}`,
       quality: "4K",
     },
     {
+      id: "nanovuemovie",
       server: "Nanovue",
       link: `${process.env.NEXT_PUBLIC_YTHD_BASE_URL}/movie/${tmdbId}`,
       quality: "1080p",
@@ -87,10 +93,14 @@ function ServerCard({ name, quality, isActive, onClick }: ServerCardProps) {
 export default function Page() {
   const params = useParams();
   const movieId = params.id as string;
+  const { user } = useAuth();
 
   const [movie, setMovie] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeServerIndex, setActiveServerIndex] = useState(0);
+  const hasSavedRef = useRef(false);
+  const durationRef = useRef(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const servers = generateStreamLinks(movieId);
 
@@ -156,6 +166,86 @@ export default function Page() {
     }
   }, [movieId]);
 
+  // Watch history tracking - use timer for duration
+  useEffect(() => {
+    // Start timer when component mounts
+    timerRef.current = setInterval(() => {
+      durationRef.current += 1;
+    }, 1000);
+    console.log(`⏱️ Watch History: Timer started for movie ${movieId}`);
+
+    // Cleanup function - save watch history when user leaves
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (!user || !movie || hasSavedRef.current) return;
+
+      // Only save if user watched for at least 1 minute
+      if (durationRef.current < 60) {
+        console.log(
+          `⏭️ Watch History: Skipping save - duration too short (${durationRef.current}s, minimum 1 minute required)`
+        );
+        return;
+      }
+
+      console.log(
+        `⏲️ Watch History: Ended watching movie ${movieId} - Duration: ${
+          durationRef.current
+        }s (${Math.floor(durationRef.current / 60)}m ${
+          durationRef.current % 60
+        }s)`
+      );
+
+      // Send watch history to API
+      const watchData = {
+        user_id: user.id,
+        tmdb_id: parseInt(movieId),
+        title: movie.title,
+        media_type: "movie",
+        stream_id: servers[activeServerIndex].id,
+        poster_path: movie.poster_path,
+        release_date: movie.release_date,
+        duration_sec: durationRef.current,
+      };
+
+      console.log(
+        `💾 Watch History: Saving to database via server ${servers[activeServerIndex].server}`,
+        watchData
+      );
+
+      // Mark as saved to prevent duplicate calls
+      hasSavedRef.current = true;
+
+      // Get the user's session token
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          console.error("❌ Watch History: No active session");
+          return;
+        }
+
+        // Send with auth token in header for RLS
+        fetch("/api/watch-history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(watchData),
+          keepalive: true,
+        })
+          .then((res) => {
+            if (res.ok) {
+              console.log("✅ Watch History: Successfully saved");
+            } else {
+              console.error(
+                `❌ Watch History: Failed with status ${res.status}`
+              );
+            }
+          })
+          .catch((err) => console.error("❌ Watch History: Fetch failed", err));
+      });
+    };
+  }, [user, movie, movieId, activeServerIndex, servers]);
+
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -184,7 +274,6 @@ export default function Page() {
         fontFamily: "Be Vietnam Pro, sans-serif",
       }}
     >
-
       <div className="relative px-4 sm:px-6 lg:px-16 pt-24 pb-8 space-y-6">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content - Left Side */}

@@ -210,7 +210,11 @@ export default function WatchlistPage() {
                 <div
                   className="relative aspect-2/3 overflow-hidden cursor-pointer"
                   onClick={() =>
-                    router.push(`/details/${item.type}/${item.id}`)
+                    router.push(
+                      `/details/${item.type === "movie" ? "movie" : "tvshow"}/${
+                        item.id
+                      }`
+                    )
                   }
                 >
                   <Image

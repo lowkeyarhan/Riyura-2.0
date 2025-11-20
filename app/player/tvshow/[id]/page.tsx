@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   Calendar,
@@ -14,6 +14,8 @@ import {
   Check,
 } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "@/src/hooks/useAuth";
+import { supabase } from "@/src/lib/supabase";
 
 // Generate stream links based on TV show ID, season, and episode
 const generateStreamLinks = (
@@ -23,21 +25,25 @@ const generateStreamLinks = (
 ) => {
   return [
     {
+      id: "syntheriontv",
       server: "Syntherion",
       link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/tv/${tmdbId}/${season}/${episode}`,
       quality: "1080p",
     },
     {
+      id: "ironlinktv",
       server: "IronLink",
       link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/tv/${tmdbId}/${season}/${episode}`,
       quality: "1080p",
     },
     {
+      id: "dormannutv",
       server: "Dormannu (ads)",
       link: `${process.env.NEXT_PUBLIC_VIDEASY_BASE_URL}/tv/${tmdbId}/${season}/${episode}`,
       quality: "4K",
     },
     {
+      id: "nanovuetv",
       server: "Nanovue",
       link: `${process.env.NEXT_PUBLIC_YTHD_BASE_URL}/tv/${tmdbId}/${season}/${episode}`,
       quality: "1080p",
@@ -103,6 +109,7 @@ export default function Page() {
   const params = useParams();
   const searchParams = useSearchParams();
   const tvShowId = params.id as string;
+  const { user } = useAuth();
 
   const [tvShow, setTvShow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -112,6 +119,9 @@ export default function Page() {
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
+  const hasSavedRef = useRef(false);
+  const durationRef = useRef(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get season and episode from URL params or use defaults
   useEffect(() => {
@@ -218,6 +228,98 @@ export default function Page() {
     }
   }, [tvShowId, selectedSeason]);
 
+  // Watch history tracking - use timer for duration
+  useEffect(() => {
+    // Start timer when component mounts
+    timerRef.current = setInterval(() => {
+      durationRef.current += 1;
+    }, 1000);
+    console.log(
+      `⏱️ Watch History: Timer started for TV show ${tvShowId} S${selectedSeason}E${selectedEpisode}`
+    );
+
+    // Cleanup function - save watch history when user leaves
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (!user || !tvShow || hasSavedRef.current) return;
+
+      // Only save if user watched for at least 1 minute
+      if (durationRef.current < 60) {
+        console.log(
+          `⏭️ Watch History: Skipping save - duration too short (${durationRef.current}s, minimum 1 minute required)`
+        );
+        return;
+      }
+
+      console.log(
+        `⏲️ Watch History: Ended watching TV show ${tvShowId} S${selectedSeason}E${selectedEpisode} - Duration: ${
+          durationRef.current
+        }s (${Math.floor(durationRef.current / 60)}m ${
+          durationRef.current % 60
+        }s)`
+      );
+
+      // Send watch history to API
+      const watchData = {
+        user_id: user.id,
+        tmdb_id: parseInt(tvShowId),
+        title: `${tvShow.name} - S${selectedSeason}E${selectedEpisode}`,
+        media_type: "tv",
+        stream_id: servers[activeServerIndex].id,
+        poster_path: tvShow.poster_path,
+        release_date: tvShow.first_air_date,
+        duration_sec: durationRef.current,
+        season_number: selectedSeason,
+        episode_number: selectedEpisode,
+      };
+
+      console.log(
+        `💾 Watch History: Saving to database via server ${servers[activeServerIndex].server}`,
+        watchData
+      );
+
+      // Mark as saved to prevent duplicate calls
+      hasSavedRef.current = true;
+
+      // Get the user's session token
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          console.error("❌ Watch History: No active session");
+          return;
+        }
+
+        // Send with auth token in header for RLS
+        fetch("/api/watch-history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(watchData),
+          keepalive: true,
+        })
+          .then((res) => {
+            if (res.ok) {
+              console.log("✅ Watch History: Successfully saved");
+            } else {
+              console.error(
+                `❌ Watch History: Failed with status ${res.status}`
+              );
+            }
+          })
+          .catch((err) => console.error("❌ Watch History: Fetch failed", err));
+      });
+    };
+  }, [
+    user,
+    tvShow,
+    tvShowId,
+    selectedSeason,
+    selectedEpisode,
+    activeServerIndex,
+    servers,
+  ]);
+
   const seasons = (tvShow?.seasons || []).filter(
     (season: any) => season.season_number !== 0 && season.episode_count > 0
   );
@@ -250,7 +352,6 @@ export default function Page() {
         fontFamily: "Be Vietnam Pro, sans-serif",
       }}
     >
-
       <div className="relative px-4 sm:px-6 lg:px-16 pt-24 pb-8 space-y-6">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content - Left Side */}
