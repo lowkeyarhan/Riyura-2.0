@@ -110,16 +110,16 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative isolate min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
-          <div className="absolute inset-0 z-0">
-            <Image
-              src="/landingPage.png"
-              alt="Landing Page Background"
-              fill
-              priority
-              className="object-cover object-center"
-              style={{ filter: "brightness(0.6) contrast(1.1)" }}
-            />
-          </div>
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/landingPage.png"
+            alt="Landing Page Background"
+            fill
+            priority
+            className="object-cover object-center"
+            style={{ filter: "brightness(0.6) contrast(1.1)" }}
+          />
+        </div>
 
         {/* Hero Headings */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20 pointer-events-none -translate-y-30">
