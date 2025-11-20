@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import LoadingDots from "./LoadingDots";
 
 interface Movie {
   id: number;
@@ -109,7 +110,7 @@ export default function Movies({
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-96">
-        <div className="text-white">Loading...</div>
+        <LoadingDots />
       </div>
     );
   }

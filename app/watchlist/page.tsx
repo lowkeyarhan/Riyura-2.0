@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import { getWatchlist, removeFromWatchlist } from "@/src/lib/database";
+import LoadingDots from "@/src/components/LoadingDots";
 import type { WatchlistItem } from "@/src/lib/database";
 
 type MediaType = "movie" | "tv";
@@ -126,7 +127,7 @@ export default function WatchlistPage() {
     return (
       <div className="min-h-screen bg-black">
         <div className="flex items-center justify-center h-[80vh]">
-          <div className="text-white text-2xl">Loading watchlist...</div>
+          <LoadingDots />
         </div>
       </div>
     );

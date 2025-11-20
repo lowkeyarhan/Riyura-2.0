@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
 import Footer from "@/src/components/footer";
+import LoadingDots from "@/src/components/LoadingDots";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/NotificationContext";
 import {
@@ -229,7 +230,7 @@ export default function TVShowDetails() {
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: BG_COLOR }}
       >
-        <div className="text-white text-2xl">Loading...</div>
+        <LoadingDots />
       </div>
     );
   }
