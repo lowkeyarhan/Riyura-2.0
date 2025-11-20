@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-// Define what a single movie looks like
 interface Movie {
   id: number;
   title?: string; // For movies
@@ -32,13 +31,11 @@ export async function GET() {
 
   try {
     console.log("🌐 Fetching fresh trending movies from TMDB");
-    // Build the TMDB API URL
     const tmdbUrl = `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`;
 
-    // Make the request to TMDB
     const response = await fetch(tmdbUrl, {
       headers: { accept: "application/json" },
-      cache: "no-store", // Don't cache - always get fresh data
+      cache: "no-store",
     });
 
     // STEP 3: Check if the request was successful

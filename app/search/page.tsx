@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, X, TrendingUp, Film, Tv, Sparkles } from "lucide-react";
+import { Search, X, Film, Tv } from "lucide-react";
 
+// Types
 interface SearchResult {
   id: number;
   title?: string;
@@ -30,6 +31,7 @@ interface TrendingItem {
   first_air_date?: string | null;
 }
 
+// Constants
 const TABS = [
   { key: "all", label: "A L L" },
   { key: "movies", label: "M O V I E" },
@@ -56,17 +58,17 @@ const PLACEHOLDER_TEXTS = [
   'Search by genre "Cyberpunk"',
 ];
 
-const BUTTON_STYLE = { fontFamily: "Be Vietnam Pro, sans-serif" };
+const FONT_STYLE = { fontFamily: "Be Vietnam Pro, sans-serif" };
+const TRENDING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Simple in-memory cache for trending content (per browser session)
-// Not persisted across reloads, but prevents duplicate fetches while app lives.
+// Simple in-memory cache
 let trendingCache: {
   movies: TrendingItem[];
   tv: TrendingItem[];
   fetchedAt: number;
 } | null = null;
-const TRENDING_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Icon Components
 const MovieIcon = () => (
   <svg
     className="w-5 h-5 text-white"
@@ -127,24 +129,10 @@ const PlayIcon = () => (
   </svg>
 );
 
-const BookmarkIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-    />
-  </svg>
-);
-
 export default function SearchPage() {
   const router = useRouter();
+
+  // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,6 +142,7 @@ export default function SearchPage() {
   const [trendingTV, setTrendingTV] = useState<TrendingItem[]>([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [placeholderOpacity, setPlaceholderOpacity] = useState(1);
+
   const placeholderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -163,9 +152,7 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    if (PLACEHOLDER_TEXTS.length <= 1) {
-      return;
-    }
+    if (PLACEHOLDER_TEXTS.length <= 1) return;
 
     const interval = setInterval(() => {
       setPlaceholderOpacity(0);
@@ -177,9 +164,8 @@ export default function SearchPage() {
 
     return () => {
       clearInterval(interval);
-      if (placeholderTimeoutRef.current) {
+      if (placeholderTimeoutRef.current)
         clearTimeout(placeholderTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -187,24 +173,10 @@ export default function SearchPage() {
     try {
       const now = Date.now();
 
-      if (trendingCache) {
-        const age = now - trendingCache.fetchedAt;
-        if (age < TRENDING_CACHE_TTL_MS) {
-          console.info(
-            `[Search] Using cached trending data (age: ${Math.round(
-              age / 1000
-            )}s)`
-          );
-          setTrendingMovies(trendingCache.movies);
-          setTrendingTV(trendingCache.tv);
-          return;
-        } else {
-          console.info(
-            "[Search] Trending cache expired, refreshing from network"
-          );
-        }
-      } else {
-        console.info("[Search] No trending cache, fetching from network");
+      if (trendingCache && now - trendingCache.fetchedAt < TRENDING_CACHE_TTL) {
+        setTrendingMovies(trendingCache.movies);
+        setTrendingTV(trendingCache.tv);
+        return;
       }
 
       const [moviesRes, tvRes] = await Promise.all([
@@ -217,18 +189,11 @@ export default function SearchPage() {
       const movies = moviesData.results?.slice(0, 6) || [];
       const tv = tvData.results?.slice(0, 6) || [];
 
-      trendingCache = {
-        movies,
-        tv,
-        fetchedAt: now,
-      };
-
-      console.info("[Search] Trending data fetched from network and cached");
-
+      trendingCache = { movies, tv, fetchedAt: now };
       setTrendingMovies(movies);
       setTrendingTV(tv);
     } catch (error) {
-      console.error("[Search] Error fetching trending:", error);
+      console.error("Error fetching trending:", error);
     }
   };
 
@@ -242,13 +207,10 @@ export default function SearchPage() {
         `/api/search?q=${encodeURIComponent(query)}&type=multi`
       );
       const data = await response.json();
-      console.log("Search results:", data?.results?.length || 0, "items found");
 
-      const list: SearchResult[] = Array.isArray(data?.results)
-        ? data.results
-        : [];
-      const filtered = list.filter(
-        (item) => item.media_type === "movie" || item.media_type === "tv"
+      const filtered = (data?.results || []).filter(
+        (item: SearchResult) =>
+          item.media_type === "movie" || item.media_type === "tv"
       );
       setResults(filtered);
       setLastQuery(query);
@@ -260,16 +222,17 @@ export default function SearchPage() {
     }
   };
 
-  const handleQuickSearch = (term: string) => {
-    setSearchQuery(term);
-    handleSearch(term);
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSearch(searchQuery);
       setSearchQuery("");
     }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setResults([]);
+    setLastQuery("");
   };
 
   const formatDate = (date: string | null | undefined) => {
@@ -300,23 +263,20 @@ export default function SearchPage() {
       ...item,
       mediaCategory: "movie" as const,
     })),
-    ...trendingTV.map((item) => ({
-      ...item,
-      mediaCategory: "tv" as const,
-    })),
+    ...trendingTV.map((item) => ({ ...item, mediaCategory: "tv" as const })),
   ].slice(0, 6);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute -left-32 top-16 w-[55vw] h-[55vh] bg-cyan-500/10 rounded-full blur-[140px]"></div>
-        <div className="absolute -right-24 bottom-0 w-[50vw] h-[60vh] bg-orange-500/10 rounded-full blur-[160px]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]"></div>
+        <div className="absolute -left-32 top-16 w-[55vw] h-[55vh] bg-cyan-500/10 rounded-full blur-[140px]" />
+        <div className="absolute -right-24 bottom-0 w-[50vw] h-[60vh] bg-orange-500/10 rounded-full blur-[160px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
       <div className="relative z-10 px-8 md:px-16 lg:px-20 pt-32 pb-12">
-        {/* Hero Section - Centered */}
+        {/* Hero Section */}
         {!lastQuery && (
           <div className="text-center mb-16 max-w-5xl mx-auto">
             <h1
@@ -330,10 +290,7 @@ export default function SearchPage() {
             </h1>
             <p
               className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-              style={{
-                fontFamily: "Montserrat, sans-serif",
-                fontWeight: 400,
-              }}
+              style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 400 }}
             >
               Search by keyword, brand, type, date, color – whatever you think
               of first. Discover millions of movies and shows instantly.
@@ -341,55 +298,49 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Search Bar - Animated Placeholder */}
+        {/* Search Bar */}
         <div className="max-w-3xl mx-auto mb-16">
-          <div className="relative">
-            <div className="flex items-center gap-4 rounded-full bg-[#1a2332]/80 border border-white/10 px-6 py-4 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_25px_60px_rgba(0,255,255,0.15)]">
-              <Search className="w-5 h-5 text-cyan-400" />
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder=""
-                  className="w-full bg-transparent text-base md:text-lg text-white placeholder-transparent focus:outline-none"
-                  style={BUTTON_STYLE}
-                />
-                {searchQuery.length === 0 && (
-                  <span
-                    className={`absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none transition-opacity duration-500 ${
-                      placeholderOpacity === 1 ? "opacity-100" : "opacity-0"
-                    }`}
-                    style={BUTTON_STYLE}
-                  >
-                    {PLACEHOLDER_TEXTS[placeholderIndex]}
-                  </span>
-                )}
-              </div>
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setResults([]);
-                    setLastQuery("");
-                  }}
-                  className="text-slate-400 hover:text-white transition-colors"
+          <div className="flex items-center gap-4 rounded-full bg-[#1a2332]/80 border border-white/10 px-6 py-4 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-cyan-500/30 hover:shadow-[0_25px_60px_rgba(0,255,255,0.15)]">
+            <Search className="w-5 h-5 text-cyan-400" />
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder=""
+                className="w-full bg-transparent text-base md:text-lg text-white placeholder-transparent focus:outline-none"
+                style={FONT_STYLE}
+              />
+              {!searchQuery && (
+                <span
+                  className={`absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none transition-opacity duration-500 ${
+                    placeholderOpacity === 1 ? "opacity-100" : "opacity-0"
+                  }`}
+                  style={FONT_STYLE}
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  {PLACEHOLDER_TEXTS[placeholderIndex]}
+                </span>
               )}
+            </div>
+            {searchQuery && (
               <button
                 type="button"
-                onClick={() => handleSearch()}
-                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-orange-600 to-red-600 text-sm md:text-base font-bold text-white shadow-[0_0_24px_rgba(255,80,0,0.35)] transition-all duration-300 hover:shadow-[0_0_32px_rgba(255,80,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
-                disabled={!searchQuery.trim() || isLoading}
-                style={{ fontFamily: "Montserrat, sans-serif" }}
+                onClick={clearSearch}
+                className="text-slate-400 hover:text-white transition-colors"
               >
-                Search
+                <X className="w-4 h-4" />
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSearch()}
+              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-orange-600 to-red-600 text-sm md:text-base font-bold text-white shadow-[0_0_24px_rgba(255,80,0,0.35)] transition-all duration-300 hover:shadow-[0_0_32px_rgba(255,80,0,0.5)] disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+              disabled={!searchQuery.trim() || isLoading}
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              Search
+            </button>
           </div>
         </div>
 
@@ -419,17 +370,17 @@ export default function SearchPage() {
                   : `/details/tvshow/${item.id}`;
                 const Icon = isMovie ? Film : Tv;
                 const releaseDate = item.release_date || item.first_air_date;
-                const cardOverview = item.overview
-                  ? item.overview
-                  : isMovie
-                  ? "Experience the cinematic moment everyone is talking about."
-                  : "Binge the series that is dominating conversations right now.";
+                const cardOverview =
+                  item.overview ||
+                  (isMovie
+                    ? "Experience the cinematic moment everyone is talking about."
+                    : "Binge the series that is dominating conversations right now.");
 
                 return (
                   <div
                     key={`${item.id}-${item.mediaCategory}`}
                     onClick={() => router.push(href)}
-                    className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#161a39] via-[#10172c] to-[#070b18] p-6 cursor-pointer transition-all duration-500  hover:shadow-[0_30px_60px_-18px_rgba(7,11,24,0.9)]"
+                    className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#161a39] via-[#10172c] to-[#070b18] p-6 cursor-pointer transition-all duration-500 hover:shadow-[0_30px_60px_-18px_rgba(7,11,24,0.9)]"
                   >
                     {item.backdrop_path || item.poster_path ? (
                       <Image
@@ -517,13 +468,13 @@ export default function SearchPage() {
               <div className="absolute inset-0 border-4 border-purple-500/30 rounded-full" />
               <div className="absolute inset-0 border-4 border-transparent border-t-purple-500 rounded-full animate-spin" />
             </div>
-            <p className="text-gray-400 text-lg" style={BUTTON_STYLE}>
+            <p className="text-gray-400 text-lg" style={FONT_STYLE}>
               Searching...
             </p>
           </div>
         )}
 
-        {/* Empty State - No Results */}
+        {/* Empty State */}
         {!isLoading && results.length === 0 && searchQuery && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mb-6">
@@ -531,11 +482,11 @@ export default function SearchPage() {
             </div>
             <h2
               className="text-3xl font-semibold mb-3 text-white"
-              style={BUTTON_STYLE}
+              style={FONT_STYLE}
             >
               No results found
             </h2>
-            <p className="text-gray-400 text-lg max-w-md" style={BUTTON_STYLE}>
+            <p className="text-gray-400 text-lg max-w-md" style={FONT_STYLE}>
               Try adjusting your search or browse our collection.
             </p>
           </div>
@@ -547,12 +498,12 @@ export default function SearchPage() {
             <div className="mb-8 text-center">
               <h2
                 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 via-pink-500 to-red-400 bg-clip-text text-transparent"
-                style={BUTTON_STYLE}
+                style={FONT_STYLE}
               >
                 Search Results
               </h2>
               {(lastQuery || searchQuery) && (
-                <p className="text-gray-300 text-lg" style={BUTTON_STYLE}>
+                <p className="text-gray-300 text-lg" style={FONT_STYLE}>
                   Found{" "}
                   <span className="text-white font-semibold">
                     {filteredResults.length}
@@ -570,7 +521,6 @@ export default function SearchPage() {
                   className="group flex flex-col bg-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-102 hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer"
                   onClick={() => navigateToDetails(item)}
                 >
-                  {/* Poster */}
                   <div className="relative aspect-[2/3]">
                     {item.poster_path ? (
                       <Image
@@ -586,26 +536,23 @@ export default function SearchPage() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    {/* Media Type Badge */}
                     <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-sm rounded p-1.5">
                       {item.media_type === "movie" ? <MovieIcon /> : <TVIcon />}
                     </div>
                   </div>
 
-                  {/* Card Info */}
                   <div className="p-4 flex flex-col gap-3">
                     <h3
                       className="text-white text-lg font-semibold line-clamp-1"
-                      style={BUTTON_STYLE}
+                      style={FONT_STYLE}
                     >
                       {item.title || item.name}
                     </h3>
 
-                    {/* Date and Rating */}
                     <div className="flex items-center justify-between text-sm">
                       <div
                         className="flex items-center gap-1.5 text-gray-400"
-                        style={BUTTON_STYLE}
+                        style={FONT_STYLE}
                       >
                         <CalendarIcon />
                         <span>
@@ -615,18 +562,17 @@ export default function SearchPage() {
                       {item.vote_average > 0 && (
                         <div className="flex items-center gap-1 text-yellow-400">
                           <StarIcon />
-                          <span className="font-semibold" style={BUTTON_STYLE}>
+                          <span className="font-semibold" style={FONT_STYLE}>
                             {item.vote_average.toFixed(1)}
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Overview */}
                     {item.overview && (
                       <p
                         className="text-gray-400 text-sm line-clamp-2 leading-relaxed"
-                        style={BUTTON_STYLE}
+                        style={FONT_STYLE}
                       >
                         {item.overview}
                       </p>

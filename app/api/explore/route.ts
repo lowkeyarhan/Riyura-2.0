@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
 
-const genreMap: { [key: string]: number } = {
+const GENRE_MAP: Record<string, number> = {
   Action: 28,
   Adventure: 12,
   Animation: 16,
@@ -26,101 +26,73 @@ const genreMap: { [key: string]: number } = {
 
 export async function GET(request: Request) {
   if (!TMDB_API_KEY) {
-    return NextResponse.json(
-      { error: "Missing TMDB_API_KEY in environment variables" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "API Key missing" }, { status: 500 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const page = searchParams.get("page") || "1";
-  const mediaType = searchParams.get("mediaType") || "movie";
-  const genres = searchParams.get("genres"); // Comma-separated genre names
-
-  let genreIds = "";
-  if (genres) {
-    genreIds = genres
-      .split(",")
-      .map((genreName) => genreMap[genreName.trim()])
-      .filter(Boolean)
-      .join(",");
-  }
-
-  const endpoint =
-    mediaType === "all"
-      ? `/discover/movie?include_adult=false&language=en-US&page=${page}&sort_by=popularity.desc`
-      : `/discover/${mediaType}?include_adult=false&language=en-US&page=${page}&sort_by=popularity.desc`;
-
-  let url = `${BASE_URL}${endpoint}&api_key=${TMDB_API_KEY}`;
-
-  if (genreIds) {
-    url += `&with_genres=${genreIds}`;
-  }
-
-  // Special handling for 'all' to fetch both movies and tv shows
   try {
-    if (mediaType === "all") {
-      const movieUrl = `${BASE_URL}/discover/movie?include_adult=false&language=en-US&page=${page}&sort_by=popularity.desc&api_key=${TMDB_API_KEY}${
-        genreIds ? `&with_genres=${genreIds}` : ""
-      }`;
-      const tvUrl = `${BASE_URL}/discover/tv?include_adult=false&language=en-US&page=${page}&sort_by=popularity.desc&api_key=${TMDB_API_KEY}${
-        genreIds ? `&with_genres=${genreIds}` : ""
-      }`;
+    // 2. Parse URL Parameters
+    const { searchParams } = new URL(request.url);
+    const page = searchParams.get("page") || "1";
+    const mediaType = searchParams.get("mediaType") || "movie";
+    const genreNames = searchParams.get("genres")?.split(",") || [];
 
-      const [movieResponse, tvResponse] = await Promise.all([
-        fetch(movieUrl),
-        fetch(tvUrl),
+    // Convert names (e.g. "Action") to IDs (e.g. 28)
+    const genreIds = genreNames
+      .map((name) => GENRE_MAP[name.trim()]) // Look up ID
+      .filter(Boolean) // Remove undefined/invalid ones
+      .join(",");
+
+    // 3. Construct Base Query Params (Used for both Movie & TV fetches)
+    const apiParams = new URLSearchParams({
+      api_key: TMDB_API_KEY,
+      include_adult: "false",
+      language: "en-US",
+      sort_by: "popularity.desc",
+      page: page,
+      with_genres: genreIds,
+    });
+
+    // 4. Scenario A: Fetch "All" (Movies + TV mixed)
+    if (mediaType === "all") {
+      const [movieRes, tvRes] = await Promise.all([
+        fetch(`${BASE_URL}/discover/movie?${apiParams}`),
+        fetch(`${BASE_URL}/discover/tv?${apiParams}`),
       ]);
 
-      if (!movieResponse.ok || !tvResponse.ok) {
-        throw new Error("Failed to fetch data from TMDB");
-      }
+      if (!movieRes.ok || !tvRes.ok) throw new Error("TMDB Fetch Failed");
 
-      const movieData = await movieResponse.json();
-      const tvData = await tvResponse.json();
-
-      // Add a 'media_type' to each result
-      const movies = movieData.results.map((item: any) => ({
-        ...item,
-        media_type: "movie",
-      }));
-      const tvs = tvData.results.map((item: any) => ({
-        ...item,
-        media_type: "tv",
-      }));
-
-      // Intersperse movies and tv shows for variety
+      const [movies, tv] = await Promise.all([movieRes.json(), tvRes.json()]);
       const combined = [];
-      const minLength = Math.min(movies.length, tvs.length);
-      for (let i = 0; i < minLength; i++) {
-        combined.push(movies[i]);
-        combined.push(tvs[i]);
+      const maxLen = Math.max(movies.results.length, tv.results.length);
+
+      for (let i = 0; i < maxLen; i++) {
+        if (movies.results[i])
+          combined.push({ ...movies.results[i], media_type: "movie" });
+        if (tv.results[i])
+          combined.push({ ...tv.results[i], media_type: "tv" });
       }
-      combined.push(...movies.slice(minLength));
-      combined.push(...tvs.slice(minLength));
 
       return NextResponse.json({
+        results: combined.slice(0, 20), // Limit to 20 items per page
         page: parseInt(page),
-        results: combined.slice(0, 20), // Limit to 20 results per page
-        total_pages: Math.max(movieData.total_pages, tvData.total_pages),
-        total_results: movieData.total_results + tvData.total_results,
+        total_pages: Math.max(movies.total_pages, tv.total_pages),
       });
-    } else {
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("TMDB API Error:", errorData);
-        throw new Error(
-          `Failed to fetch data from TMDB: ${errorData.status_message}`
-        );
-      }
-      const data = await response.json();
-      return NextResponse.json(data);
     }
-  } catch (error) {
-    console.error(error);
-    const errorMessage =
-      error instanceof Error ? error.message : "An unknown error occurred";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+
+    // 5. Scenario B: Fetch Single Type (Movie OR TV)
+    const response = await fetch(
+      `${BASE_URL}/discover/${mediaType}?${apiParams}`
+    );
+
+    if (!response.ok) throw new Error("TMDB Fetch Failed");
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error("API Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
