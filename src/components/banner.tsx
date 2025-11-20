@@ -1,11 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faPlay,
-  faChevronLeft,
-  faChevronRight,
-} from "@fortawesome/free-solid-svg-icons";
+import { faPlay } from "@fortawesome/free-solid-svg-icons";
 
 interface Movie {
   id: number;
@@ -17,13 +13,9 @@ interface Movie {
   genre_ids?: number[];
 }
 
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
-const BACKDROP_SIZE = "/original";
+const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
+const AUTO_SLIDE_INTERVAL = 5000;
 
-// Auto-slide timing (in milliseconds)
-const AUTO_SLIDE_INTERVAL = 5000; // 5 seconds
-
-// Map genre IDs to genre names
 const GENRE_MAP: { [key: number]: string } = {
   28: "Action",
   12: "Adventure",
@@ -52,242 +44,159 @@ export default function Banner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch movies when component first loads
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const startTime = performance.now();
         setLoading(true);
         setError(null);
-        
-        const cacheKey = "homepage:trending-movies";
+
+        const cacheKey = "banner:trending-movies";
         const cached = localStorage.getItem(cacheKey);
-        
+
         if (cached) {
           const { data, timestamp } = JSON.parse(cached);
-          const age = Date.now() - timestamp;
-          const fifteenMinutes = 15 * 60 * 1000;
-          
-          if (age < fifteenMinutes) {
-            const endTime = performance.now();
-            const loadTime = (endTime - startTime).toFixed(0);
-            console.log(`✅ Banner: Loaded ${data.results.length} movies from CACHE in ${loadTime}ms ⚡`);
+          if (Date.now() - timestamp < 60 * 60 * 1000) {
             setMovies(data.results);
             setLoading(false);
             return;
           }
         }
-        
-        console.log("🎬 Banner: Fetching trending movies...");
-        const response = await fetch("/api/trending", { cache: "no-store" });
 
-        if (!response.ok) {
-          throw new Error(`Failed to load movies (${response.status})`);
-        }
+        const response = await fetch("/api/trending", { cache: "no-store" });
+        if (!response.ok) throw new Error("Failed to load movies");
 
         const data = await response.json();
-        const endTime = performance.now();
-        const loadTime = (endTime - startTime).toFixed(0);
-        const count = data?.results?.length || 0;
-        
-        localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
-        console.log(`✅ Banner: Loaded ${count} movies FRESH from API in ${loadTime}ms`);
-
-        setMovies(Array.isArray(data?.results) ? data.results : []);
-      } catch (error: any) {
-        setError(error?.message || "Something went wrong fetching movies");
+        setMovies(data.results || []);
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ data, timestamp: Date.now() })
+        );
+      } catch (err: any) {
+        setError(err?.message || "Something went wrong");
       } finally {
         setLoading(false);
       }
     };
+
     fetchMovies();
   }, []);
 
-  // Get the currently displayed movie
   const currentMovie = movies[currentSlide];
 
-  // Get genre names for the current movie (limit to 3)
   const movieGenres =
     currentMovie?.genre_ids
-      ?.map((id) => GENRE_MAP[id]) // Convert IDs to names
-      .filter(Boolean) // Remove undefined values
+      ?.map((id) => GENRE_MAP[id])
+      .filter(Boolean)
       .slice(0, 3) || [];
 
-  // Build full image URL from TMDB path
-  const getImageUrl = (path: string) => {
-    if (!path) return "/placeholder-image.jpg";
-    return `${IMAGE_BASE_URL}${BACKDROP_SIZE}${path}`;
-  };
+  const getImageUrl = (path: string) =>
+    path ? `${IMAGE_BASE_URL}${path}` : "/placeholder-image.jpg";
 
-  // Shorten long text and add "..." at the end
-  const truncate = (text: string, maxLength: number) => {
-    if (!text) return "";
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  };
+  const truncate = (text: string, maxLength: number) =>
+    text?.length > maxLength
+      ? text.substring(0, maxLength) + "..."
+      : text || "";
 
-  // Move to next or previous slide
-  const changeSlide = (direction: number) => {
+  const nextSlide = () => {
     if (movies.length === 0) return;
-
-    setCurrentSlide((prev) => {
-      const newSlide = prev + direction;
-
-      // Loop back to last slide if going before first
-      if (newSlide < 0) {
-        return movies.length - 1;
-      }
-
-      // Loop back to first slide if going past last
-      if (newSlide >= movies.length) {
-        return 0;
-      }
-
-      return newSlide;
-    });
+    setCurrentSlide((prev) => (prev + 1) % movies.length);
   };
 
-  // Jump directly to a specific slide (used by dots)
   const goToSlide = (index: number) => {
-    // Check if index is valid
-    if (index < 0 || index >= movies.length) return;
-    setCurrentSlide(index);
+    if (index >= 0 && index < movies.length) setCurrentSlide(index);
   };
 
-  // Compute up to 5 visible dot indices centered around current slide
-  const getVisibleDotIndices = (): number[] => {
-    const total = movies.length;
-    const maxDots = 5;
-    if (total <= maxDots) {
-      return Array.from({ length: total }, (_, i) => i);
-    }
-    // If near the start, show first 5
-    if (currentSlide <= 2) {
-      return [0, 1, 2, 3, 4];
-    }
-    // If near the end, show last 5
-    if (currentSlide >= total - 3) {
-      return [total - 5, total - 4, total - 3, total - 2, total - 1];
-    }
-    // Otherwise, center around current slide
-    return [
-      currentSlide - 2,
-      currentSlide - 1,
-      currentSlide,
-      currentSlide + 1,
-      currentSlide + 2,
-    ];
-  };
-
-  // When user clicks the Play button
-  const handlePlayClick = () => {
-    console.log("Play movie:", currentMovie.title);
-    // TODO: Add your play/watch functionality here
-  };
-
-  // Automatically move to next slide every 5 seconds
   useEffect(() => {
-    // Don't auto-slide if no movies
     if (movies.length === 0) return;
-
-    // Set up the timer
-    const timer = setInterval(() => {
-      changeSlide(1);
-    }, AUTO_SLIDE_INTERVAL);
-
+    const timer = setInterval(nextSlide, AUTO_SLIDE_INTERVAL);
     return () => clearInterval(timer);
-  }, [currentSlide, movies.length]);
-
+  }, [movies.length]);
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
-      {/* ===== LOADING STATE ===== */}
+    <div className="relative w-full h-screen bg-black overflow-hidden">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center text-white">
+        <div className="absolute inset-0 flex items-center justify-center text-white text-xl">
           Loading…
         </div>
       )}
 
-      {/* ===== ERROR STATE ===== */}
       {error && !loading && (
-        <div className="absolute inset-0 flex items-center justify-center text-red-400">
+        <div className="absolute inset-0 flex items-center justify-center text-red-400 text-xl">
           {error}
         </div>
       )}
 
-      {/* ===== EMPTY STATE ===== */}
-      {!loading && !error && !currentMovie && (
-        <div className="absolute inset-0 flex items-center justify-center text-white">
-          No movies to display
+      {!loading && !error && movies.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-white text-xl">
+          No movies available
         </div>
       )}
 
-      {/* ===== BACKGROUND IMAGE ===== */}
       {currentMovie && (
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${getImageUrl(currentMovie.backdrop_path)})`,
-          }}
-        />
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${getImageUrl(
+                currentMovie.backdrop_path
+              )})`,
+            }}
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+          <div className="relative z-10 h-full flex flex-col justify-between p-8 md:p-16">
+            <div className="flex-1 flex flex-col justify-end">
+              {movieGenres.length > 0 && (
+                <div className="flex items-center gap-3 mb-6">
+                  {movieGenres.map((genre, i) => (
+                    <React.Fragment key={i}>
+                      <span className="text-sm md:text-base text-white/70">
+                        {genre}
+                      </span>
+                      {i < movieGenres.length - 1 && (
+                        <span className="text-white/50">●</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              <h1 className="text-6xl md:text-7xl lg:text-8xl font-black mb-6 text-white drop-shadow-lg leading-none">
+                {currentMovie.title ||
+                  currentMovie.name ||
+                  currentMovie.original_name}
+              </h1>
+
+              <button className="w-fit flex items-center gap-2 px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-white/90 transition mb-6">
+                <FontAwesomeIcon icon={faPlay} />
+                Play
+              </button>
+
+              <p className="text-base md:text-lg text-white/90 max-w-2xl leading-relaxed drop-shadow-md">
+                {truncate(currentMovie.overview, 170)}
+              </p>
+            </div>
+
+            {movies.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                {movies.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentSlide
+                        ? "bg-white w-8"
+                        : "bg-white/50 hover:bg-white/70"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
-
-      {/* ===== GRADIENT OVERLAYS ===== */}
-      <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/60 to-black/40" />
-      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-transparent" />
-
-      {/* ===== MOVIE INFORMATION ===== */}
-      <div className="relative z-10 h-full flex flex-col justify-end pb-32 px-8 md:px-16 lg:px-20">
-        {/* Genre Tags*/}
-        {currentMovie && movieGenres.length > 0 && (
-          <div className="flex items-center gap-3 mb-8">
-            {movieGenres.map((genre, index) => (
-              <React.Fragment key={index}>
-                <span className="text-lg md:text-base text-white/50">
-                  {genre}
-                </span>
-                {index < movieGenres.length - 1 && (
-                  <span className="text-white/60 text-xs">●</span>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-
-        {/* Movie Title */}
-        {currentMovie && (
-          <h1
-            className="text-7xl md:text-8xl lg:text-8xl font-black mb-8 text-white drop-shadow-lg"
-            style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-          >
-            {currentMovie.title ||
-              currentMovie.name ||
-              currentMovie.original_name}
-          </h1>
-        )}
-
-        {/* Play Button */}
-        {currentMovie && (
-          <div className="flex gap-4 mb-8 flex-wrap">
-            <button
-              onClick={handlePlayClick}
-              className="flex items-center gap-2 px-8 py-3 bg-white text-black rounded-full text-lg font-semibold hover:bg-white/90 transition-colors"
-            >
-              <FontAwesomeIcon icon={faPlay} />
-              Play
-            </button>
-          </div>
-        )}
-
-        {/* Movie Description */}
-        {currentMovie && (
-          <p
-            className="text-lg md:text-xl text-white/95 max-w-2xl leading-relaxed drop-shadow-md font-extralight"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            {truncate(currentMovie.overview, 170)}
-          </p>
-        )}
-      </div>
     </div>
   );
 }

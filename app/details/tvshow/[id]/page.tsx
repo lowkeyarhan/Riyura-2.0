@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Navbar from "@/src/components/navbar";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
+import Navbar from "@/src/components/navbar";
 import Footer from "@/src/components/footer";
 import { useAuth } from "@/src/hooks/useAuth";
 import {
@@ -38,7 +38,6 @@ interface TVShow {
   overview: string;
   genres: { id: number; name: string }[];
   production_companies: { id: number; name: string; logo_path: string }[];
-  production_countries?: { iso_3166_1: string; name: string }[];
   networks: { id: number; name: string; logo_path: string }[];
   created_by?: { id: number; name: string; profile_path: string }[];
   seasons: Season[];
@@ -48,12 +47,6 @@ interface TVShow {
       name: string;
       character: string;
       profile_path: string;
-    }[];
-    crew?: {
-      id: number;
-      name: string;
-      job: string;
-      department: string;
     }[];
   };
   similar: {
@@ -65,6 +58,45 @@ interface TVShow {
     }[];
   };
 }
+
+const BG_COLOR = "rgb(7, 9, 16)";
+const FONT = "Be Vietnam Pro, sans-serif";
+const CACHE_TTL = 15 * 60 * 1000;
+
+const formatRuntime = (minutes: number[]) => {
+  if (!minutes || minutes.length === 0) return "N/A";
+  const mins = minutes[0];
+  const hours = Math.floor(mins / 60);
+  const minsRemainder = mins % 60;
+  return hours > 0 ? `${hours}h ${minsRemainder}m` : `${minsRemainder}m`;
+};
+
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+const InfoRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <>
+    <div className="flex items-center justify-between">
+      <span className="text-white/60" style={{ fontFamily: FONT }}>
+        {label}
+      </span>
+      <span className="text-white" style={{ fontFamily: FONT }}>
+        {value}
+      </span>
+    </div>
+    <div className="h-px bg-white/10" />
+  </>
+);
 
 export default function TVShowDetails() {
   const router = useRouter();
@@ -86,55 +118,28 @@ export default function TVShowDetails() {
         if (cached) {
           try {
             const { data, timestamp } = JSON.parse(cached);
-            const age = Date.now() - timestamp;
-            const fifteenMinutes = 15 * 60 * 1000;
-
-            if (age < fifteenMinutes) {
-              console.log(
-                `✅ TV Show Details: Loaded from SESSION CACHE (${Math.floor(
-                  age / 1000
-                )}s old) ⚡`
-              );
+            if (Date.now() - timestamp < CACHE_TTL) {
+              console.log(`✅ TV show loaded from cache`);
               setTVShow(data);
               setLoading(false);
               return;
-            } else {
-              console.log(
-                `⚠️ TV Show Details: Cache expired (${Math.floor(
-                  age / 1000
-                )}s old), fetching fresh`
-              );
-              sessionStorage.removeItem(cacheKey);
             }
-          } catch (e) {
+            sessionStorage.removeItem(cacheKey);
+          } catch {
             sessionStorage.removeItem(cacheKey);
           }
         }
 
-        console.log(
-          `📺 TV Show Details: Fetching details for ID ${params.id}...`
-        );
-        const startTime = performance.now();
-        setLoading(true);
+        console.log(`📺 Building TV show details for ID ${params.id}...`);
         const response = await fetch(`/api/tvshow/${params.id}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch TV show details");
-        }
-        const data = await response.json();
-        const endTime = performance.now();
-        const loadTime = (endTime - startTime).toFixed(0);
-        console.log(
-          `✅ TV Show Details: Loaded FRESH from API in ${loadTime}ms`
-        );
+        if (!response.ok) throw new Error("Failed to fetch TV show details");
 
+        const data = await response.json();
         sessionStorage.setItem(
           cacheKey,
-          JSON.stringify({
-            data,
-            timestamp: Date.now(),
-          })
+          JSON.stringify({ data, timestamp: Date.now() })
         );
-        console.log(`💾 TV Show Details: Cached in session (15min TTL)`);
+        console.log(`✅ TV show built and cached`);
 
         setTVShow(data);
         setError(null);
@@ -166,23 +171,6 @@ export default function TVShowDetails() {
     checkWatchlistStatus();
   }, [user, tvShow]);
 
-  const formatRuntime = (minutes: number[]) => {
-    if (!minutes || minutes.length === 0) return "N/A";
-    const avgMinutes = minutes[0];
-    const hours = Math.floor(avgMinutes / 60);
-    const mins = avgMinutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
   const handlePlayTrailer = () => {
     setShowTrailer(true);
   };
@@ -197,15 +185,11 @@ export default function TVShowDetails() {
 
   const toggleWatchlist = async () => {
     if (!user) {
-      console.log("🔒 User not logged in, redirecting to auth...");
       router.push("/auth");
       return;
     }
 
-    if (!tvShow) {
-      console.error("❌ No TV show data available");
-      return;
-    }
+    if (!tvShow) return;
 
     try {
       if (isWatchlisted) {
@@ -229,10 +213,9 @@ export default function TVShowDetails() {
 
       const cacheKey = `watchlist_${user.id}`;
       sessionStorage.removeItem(cacheKey);
-      console.log("💾 Watchlist cache cleared - will refresh on next visit");
+      console.log("💾 Watchlist cache cleared");
     } catch (err) {
-      console.error("❌ Error toggling watchlist:", err);
-      // Revert the state if there's an error
+      console.error("❌ Error:", err);
       setIsWatchlisted(!isWatchlisted);
     }
   };
@@ -241,7 +224,7 @@ export default function TVShowDetails() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: "rgb(7, 9, 16)" }}
+        style={{ backgroundColor: BG_COLOR }}
       >
         <div className="text-white text-2xl">Loading...</div>
       </div>
@@ -252,7 +235,7 @@ export default function TVShowDetails() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: "rgb(7, 9, 16)" }}
+        style={{ backgroundColor: BG_COLOR }}
       >
         <div className="text-red-500 text-2xl">
           {error || "TV Show not found"}
@@ -262,7 +245,7 @@ export default function TVShowDetails() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "rgb(7, 9, 16)" }}>
+    <div className="min-h-screen" style={{ backgroundColor: BG_COLOR }}>
       <Navbar />
 
       {/* Trailer Modal */}
@@ -302,13 +285,13 @@ export default function TVShowDetails() {
           <div className="max-w-3xl">
             <h1
               className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white"
-              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+              style={{ fontFamily: FONT }}
             >
               {tvShow.name}
             </h1>
             <div
               className="flex items-center gap-4 mb-4 text-gray-200"
-              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+              style={{ fontFamily: FONT }}
             >
               <span className="text-lg">
                 {new Date(tvShow.first_air_date).getFullYear()}
@@ -332,7 +315,7 @@ export default function TVShowDetails() {
             {tvShow.tagline && (
               <p
                 className="text-lg text-gray-300 italic mb-6"
-                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                style={{ fontFamily: FONT }}
               >
                 {tvShow.tagline}
               </p>
@@ -341,7 +324,7 @@ export default function TVShowDetails() {
               <button
                 onClick={handlePlayTrailer}
                 className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full transition font-semibold"
-                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                style={{ fontFamily: FONT }}
               >
                 <Play className="w-5 h-5" fill="currentColor" />
                 Watch Trailer
@@ -351,7 +334,7 @@ export default function TVShowDetails() {
                   router.push(`/player/tvshow/${tvShow.id}?season=1&episode=1`)
                 }
                 className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition font-semibold"
-                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                style={{ fontFamily: FONT }}
               >
                 <Play className="w-5 h-5" fill="currentColor" />
                 Watch Now
@@ -390,7 +373,7 @@ export default function TVShowDetails() {
       {/* Content Sections */}
       <div
         className="px-16 sm:px-6 lg:px-16 py-16 space-y-8"
-        style={{ backgroundColor: "rgb(7, 9, 16)" }}
+        style={{ backgroundColor: BG_COLOR }}
       >
         {/* Overview */}
         <section className="space-y-6">
@@ -398,157 +381,75 @@ export default function TVShowDetails() {
             <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] ">
               <h2
                 className="text-4xl font-semibold text-white mb-6"
-                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                style={{ fontFamily: FONT }}
               >
                 Overview
               </h2>
               <p
                 className="text-white/70 leading-relaxed"
-                style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                style={{ fontFamily: FONT }}
               >
                 {tvShow.overview}
               </p>
             </div>
             <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] space-y-4">
-              {/* First Air Date */}
-              <div className="flex items-center justify-between">
-                <span
-                  className="text-white/60"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
-                  First Air Date
-                </span>
-                <span
-                  className="text-white"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
-                  {formatDate(tvShow.first_air_date)}
-                </span>
-              </div>
-              <div className="h-px bg-white/10" />
+              <InfoRow
+                label="First Air Date"
+                value={formatDate(tvShow.first_air_date)}
+              />
 
-              {/* Last Air Date */}
               {tvShow.last_air_date && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-white/60"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    >
-                      Last Air Date
-                    </span>
-                    <span
-                      className="text-white"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    >
-                      {formatDate(tvShow.last_air_date)}
-                    </span>
-                  </div>
-                  <div className="h-px bg-white/10" />
-                </>
+                <InfoRow
+                  label="Last Air Date"
+                  value={formatDate(tvShow.last_air_date)}
+                />
               )}
 
-              {/* Episode Runtime */}
               {tvShow.episode_run_time &&
                 tvShow.episode_run_time.length > 0 && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="text-white/60"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                      >
-                        Episode Runtime
-                      </span>
-                      <span
-                        className="text-white"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                      >
-                        {formatRuntime(tvShow.episode_run_time)}
-                      </span>
-                    </div>
-                    <div className="h-px bg-white/10" />
-                  </>
+                  <InfoRow
+                    label="Episode Runtime"
+                    value={formatRuntime(tvShow.episode_run_time)}
+                  />
                 )}
 
-              {/* Network */}
-              <div className="flex items-center justify-between">
-                <span
-                  className="text-white/60"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
-                  Network
-                </span>
-                <span
-                  className="text-white"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
-                  {tvShow.networks?.[0]?.name ||
-                    tvShow.production_companies?.[0]?.name ||
-                    "Unknown"}
-                </span>
-              </div>
-              <div className="h-px bg-white/10" />
+              <InfoRow
+                label="Network"
+                value={
+                  tvShow.networks?.[0]?.name ||
+                  tvShow.production_companies?.[0]?.name ||
+                  "Unknown"
+                }
+              />
 
-              {/* Production Companies */}
               {tvShow.production_companies &&
                 tvShow.production_companies.length > 0 && (
-                  <>
-                    <div className="flex items-start justify-between">
-                      <span
-                        className="text-white/60"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                      >
-                        Production
-                      </span>
-                      <span
-                        className="text-white text-right max-w-[60%]"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                      >
-                        {tvShow.production_companies
-                          .slice(0, 2)
-                          .map((c) => c.name)
-                          .join(", ")}
-                      </span>
-                    </div>
-                    <div className="h-px bg-white/10" />
-                  </>
+                  <InfoRow
+                    label="Production"
+                    value={tvShow.production_companies
+                      .slice(0, 2)
+                      .map((c) => c.name)
+                      .join(", ")}
+                  />
                 )}
 
-              {/* Created By */}
               {tvShow.created_by && tvShow.created_by.length > 0 && (
-                <>
-                  <div className="flex items-start justify-between">
-                    <span
-                      className="text-white/60"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    >
-                      Created By
-                    </span>
-                    <span
-                      className="text-white text-right max-w-[60%]"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                    >
-                      {tvShow.created_by.map((c) => c.name).join(", ")}
-                    </span>
-                  </div>
-                  <div className="h-px bg-white/10" />
-                </>
+                <InfoRow
+                  label="Created By"
+                  value={tvShow.created_by.map((c) => c.name).join(", ")}
+                />
               )}
 
-              {/* Genres */}
               <div className="flex items-center justify-between">
-                <span
-                  className="text-white/60"
-                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
-                >
+                <span className="text-white/60" style={{ fontFamily: FONT }}>
                   Genres
                 </span>
                 <div className="flex gap-2 flex-wrap justify-end">
-                  {tvShow.genres?.slice(0, 3).map((genre, index) => (
+                  {tvShow.genres?.slice(0, 3).map((genre) => (
                     <span
                       key={genre.id}
-                      className={`rounded-full px-3 py-1 text-xs font-medium bg-white/15`}
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      className="rounded-full px-3 py-1 text-xs font-medium bg-white/15"
+                      style={{ fontFamily: FONT }}
                     >
                       {genre.name}
                     </span>
@@ -563,7 +464,7 @@ export default function TVShowDetails() {
         <section className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02]">
           <h2
             className="text-4xl font-semibold text-white mb-6"
-            style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            style={{ fontFamily: FONT }}
           >
             Cast
           </h2>
@@ -592,13 +493,13 @@ export default function TVShowDetails() {
                   <div className="space-y-1 bg-[#1a1a1a] rounded-b-2xl p-4">
                     <p
                       className="text-white text-base font-semibold truncate"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      style={{ fontFamily: FONT }}
                     >
                       {person.name}
                     </p>
                     <p
                       className="text-white/60 text-sm truncate"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      style={{ fontFamily: FONT }}
                     >
                       {person.character}
                     </p>
@@ -614,7 +515,7 @@ export default function TVShowDetails() {
           <div className="mb-16">
             <h2
               className="text-4xl font-semibold mb-8 text-white"
-              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+              style={{ fontFamily: FONT }}
             >
               Seasons
             </h2>
@@ -644,13 +545,13 @@ export default function TVShowDetails() {
                     <div className="flex-1 p-4 flex flex-col justify-center">
                       <h3
                         className="text-lg font-semibold text-white mb-2"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                        style={{ fontFamily: FONT }}
                       >
                         {season.name}
                       </h3>
                       <div
                         className="flex items-center gap-3 text-sm text-gray-400"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                        style={{ fontFamily: FONT }}
                       >
                         {season.air_date && (
                           <span>{new Date(season.air_date).getFullYear()}</span>
@@ -664,7 +565,7 @@ export default function TVShowDetails() {
                       {season.overview && (
                         <p
                           className="text-white/60 text-sm leading-relaxed mt-2 line-clamp-3"
-                          style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                          style={{ fontFamily: FONT }}
                         >
                           {season.overview}
                         </p>
@@ -681,7 +582,7 @@ export default function TVShowDetails() {
           <div className="mb-12">
             <h2
               className="text-4xl font-semibold mb-8 text-white"
-              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+              style={{ fontFamily: FONT }}
             >
               More Like This
             </h2>
@@ -704,7 +605,7 @@ export default function TVShowDetails() {
                   <div className="absolute inset-0 flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <h3
                       className="text-base font-bold text-white leading-tight mb-2"
-                      style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                      style={{ fontFamily: FONT }}
                     >
                       {similar.name}
                     </h3>
@@ -714,7 +615,7 @@ export default function TVShowDetails() {
                       </svg>
                       <span
                         className="font-semibold text-sm"
-                        style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                        style={{ fontFamily: FONT }}
                       >
                         {similar.vote_average.toFixed(1)}
                       </span>

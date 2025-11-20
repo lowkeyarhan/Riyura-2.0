@@ -1,26 +1,23 @@
 import { NextResponse } from "next/server";
 
-// Define what a single movie looks like
 interface Movie {
   id: number;
-  title?: string; // For movies
-  name?: string; // For TV shows
-  original_name?: string; // Original name in native language
-  overview: string; // Movie description
-  backdrop_path: string; // Background image path
-  poster_path: string; // Poster image path
-  genre_ids?: number[]; // Array of genre IDs (e.g., [28, 12] for Action, Adventure)
-  vote_average: number; // Rating score
-  release_date: string; // Release date
+  title?: string;
+  name?: string;
+  original_name?: string;
+  overview: string;
+  backdrop_path: string;
+  poster_path: string;
+  genre_ids?: number[];
+  vote_average: number;
+  release_date: string;
 }
 
-// Define what TMDB API returns
 interface TMDBResponse {
   results: Movie[];
 }
 
 export async function GET() {
-  console.log("🎬 Trending movies API called");
   const apiKey = process.env.TMDB_API_KEY;
 
   if (!apiKey) {
@@ -31,17 +28,13 @@ export async function GET() {
   }
 
   try {
-    console.log("🌐 Fetching fresh trending movies from TMDB");
-    // Build the TMDB API URL
     const tmdbUrl = `https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`;
 
-    // Make the request to TMDB
     const response = await fetch(tmdbUrl, {
       headers: { accept: "application/json" },
-      cache: "no-store", // Don't cache - always get fresh data
+      cache: "no-store",
     });
 
-    // STEP 3: Check if the request was successful
     if (!response.ok) {
       const errorText = await response.text();
       return NextResponse.json(
@@ -50,11 +43,10 @@ export async function GET() {
       );
     }
 
-    // STEP 4: Parse the JSON response from TMDB
     const data = (await response.json()) as TMDBResponse;
 
     const cleanedMovies = Array.isArray(data?.results)
-      ? data.results.slice(0, 6).map((movie) => ({
+      ? data.results.map((movie) => ({
           id: movie.id,
           title: movie.title,
           name: movie.name,
@@ -68,11 +60,8 @@ export async function GET() {
         }))
       : [];
 
-    const responseData = { results: cleanedMovies };
-    console.log("✅ Trending movies fetched and returned");
-    return NextResponse.json(responseData);
+    return NextResponse.json({ results: cleanedMovies });
   } catch (error: any) {
-    // STEP 7: Handle any unexpected errors
     return NextResponse.json(
       { error: error?.message || "Something went wrong fetching movies" },
       { status: 500 }
