@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 
@@ -24,7 +25,7 @@ export default function Navbar() {
           prefetch={true}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0 cursor-pointer"
         >
-          <img src="/logo.png" alt="Riyura Logo" className="h-8 w-8" />
+          <Image src="/logo.png" alt="Riyura Logo" width={32} height={32} />
           <span
             className="text-white font-bold text-xl"
             style={{ fontFamily: "'Bruno Ace', sans-serif" }}
@@ -84,12 +85,14 @@ export default function Navbar() {
                 <span className="text-sm uppercase tracking-wider text-gray-300">
                   {firstName?.toUpperCase() || "U S E R"}
                 </span>
-                <div className="w-8 h-8 rounded overflow-hidden bg-gray-700 flex items-center justify-center">
+                <div className="w-8 h-8 rounded overflow-hidden bg-gray-700 flex items-center justify-center relative">
                   {avatarUrl ? (
-                    <img
+                    <Image
                       src={avatarUrl}
                       alt={`${firstName || "User"} avatar`}
-                      className="w-full h-full object-cover"
+                      width={32}
+                      height={32}
+                      className="object-cover"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";

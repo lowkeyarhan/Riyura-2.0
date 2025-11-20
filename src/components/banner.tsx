@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlay } from "@fortawesome/free-solid-svg-icons";
 
@@ -133,13 +134,13 @@ export default function Banner() {
 
       {currentMovie && (
         <>
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url(${getImageUrl(
-                currentMovie.backdrop_path
-              )})`,
-            }}
+          <Image
+            src={getImageUrl(currentMovie.backdrop_path)}
+            alt={currentMovie.title || currentMovie.name || "Movie Banner"}
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
           />
 
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />

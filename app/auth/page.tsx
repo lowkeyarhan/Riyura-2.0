@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/supabase";
 import { ensureUserProfile } from "@/src/lib/database";
@@ -129,10 +130,12 @@ export default function AuthPage() {
             className="relative h-full w-160 max-w-full overflow-hidden rounded-2xl"
             style={{ contain: "layout paint size", willChange: "transform" }}
           >
-            <img
+            <Image
               src="/phoneMockup.png"
               alt="Riyura App Preview"
-              className="relative z-10 h-full w-full drop-shadow-2xl animate-float object-cover object-center select-none"
+              fill
+              className="relative z-10 drop-shadow-2xl animate-float object-cover object-center select-none"
+              priority
             />
           </div>
         </div>
@@ -142,10 +145,12 @@ export default function AuthPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <Link href="/landing" className="inline-flex items-center gap-3">
-              <img
+              <Image
                 src="/logo.png"
                 alt="Riyura Logo"
-                className="w-12 h-12 object-contain"
+                width={48}
+                height={48}
+                className="object-contain"
               />
               <span
                 className="text-3xl font-bold tracking-wider"

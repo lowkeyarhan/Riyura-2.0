@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import "../globals.css";
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
@@ -10,10 +11,12 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
         <div className="mx-40 px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img
+            <Image
               src="/logo.png"
               alt="Riyura Logo"
-              className="w-15 h-15 object-contain"
+              width={60}
+              height={60}
+              className="object-contain"
             />
             <span
               className="text-2xl font-bold tracking-wider"
@@ -76,11 +79,13 @@ export default function LandingPage() {
               <span className="text-sm uppercase tracking-wider text-gray-300">
                 U S E R
               </span>
-              <div className="w-8 h-8 rounded overflow-hidden">
-                <img
-                  src="/profile-avatar.jpg"
+              <div className="w-8 h-8 rounded overflow-hidden relative">
+                <Image
+                  src="/logo.png"
                   alt="Profile"
-                  className="w-full h-full object-cover"
+                  width={32}
+                  height={32}
+                  className="object-cover"
                   onError={(e) => {
                     // Fallback to gradient if image doesn't exist
                     e.currentTarget.style.display = "none";
@@ -105,15 +110,16 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative isolate min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: "url('/landingPage.png')",
-              filter: "brightness(0.6) contrast(1.1)",
-            }}
-          />
-        </div>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="/landingPage.png"
+              alt="Landing Page Background"
+              fill
+              priority
+              className="object-cover object-center"
+              style={{ filter: "brightness(0.6) contrast(1.1)" }}
+            />
+          </div>
 
         {/* Hero Headings */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20 pointer-events-none -translate-y-30">
