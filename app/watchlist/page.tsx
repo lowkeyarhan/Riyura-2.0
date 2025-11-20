@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Navbar from "@/src/components/navbar";
 import { useAuth } from "@/src/hooks/useAuth";
 import { getWatchlist, removeFromWatchlist } from "@/src/lib/database";
 import type { WatchlistItem } from "@/src/lib/database";
@@ -126,7 +125,6 @@ export default function WatchlistPage() {
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-black">
-        <Navbar />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="text-white text-2xl">Loading watchlist...</div>
         </div>
@@ -137,7 +135,6 @@ export default function WatchlistPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-black">
-        <Navbar />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="text-white text-2xl">Redirecting...</div>
         </div>
@@ -147,7 +144,6 @@ export default function WatchlistPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Navbar />
       <main className="px-8 md:px-16 pt-24 pb-12">
         <div className="mb-12">
           <h1

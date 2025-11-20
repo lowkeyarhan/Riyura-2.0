@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Plus, Star, ArrowUp } from "lucide-react";
-import Navbar from "@/src/components/navbar";
 
 interface MediaItem {
   id: number;
@@ -164,8 +163,6 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "rgb(7, 9, 16)" }}>
-      <Navbar />
-
       <main className="pt-35 px-8 md:px-16 lg:px-20">
         {/* Genre Filters */}
         <div className="mb-8 flex flex-col items-center justify-center gap-4">

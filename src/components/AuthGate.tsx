@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
+import Navbar from "@/src/components/navbar";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -49,5 +50,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  const shouldShowNavbar = !isPublic;
+
+  return shouldShowNavbar ? (
+    <>
+      <Navbar />
+      {children}
+    </>
+  ) : (
+    <>{children}</>
+  );
 }

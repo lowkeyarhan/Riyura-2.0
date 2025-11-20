@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import Navbar from "@/src/components/navbar";
 import {
   Calendar,
   Star,
@@ -238,7 +237,6 @@ export default function Page() {
           fontFamily: "Be Vietnam Pro, sans-serif",
         }}
       >
-        <Navbar />
         <div className="text-white text-xl font-semibold">Loading...</div>
       </div>
     );
@@ -252,7 +250,6 @@ export default function Page() {
         fontFamily: "Be Vietnam Pro, sans-serif",
       }}
     >
-      <Navbar />
 
       <div className="relative px-4 sm:px-6 lg:px-16 pt-24 pb-8 space-y-6">
         <div className="grid lg:grid-cols-3 gap-8">

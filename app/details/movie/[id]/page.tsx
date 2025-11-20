@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
-import Navbar from "@/src/components/navbar";
 import Footer from "@/src/components/footer";
 import { useAuth } from "@/src/hooks/useAuth";
 import {
@@ -195,8 +194,6 @@ export default function MovieDetails() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: BG_COLOR }}>
-      <Navbar />
-
       {showTrailer && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95">
           <div className="relative w-[90%] max-w-[1200px] aspect-video">
@@ -240,7 +237,6 @@ export default function MovieDetails() {
               className="flex items-center gap-4 mb-4 text-gray-200"
               style={{ fontFamily: FONT }}
             >
-              <span>{new Date(movie.release_date).getFullYear()}</span>
               <span>•</span>
               <span className="font-semibold">
                 {movie.vote_average?.toFixed(1) || "N/A"}/10

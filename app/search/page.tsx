@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search, X, TrendingUp, Film, Tv, Sparkles } from "lucide-react";
-import Navbar from "@/src/components/navbar";
 
 interface SearchResult {
   id: number;
@@ -315,7 +314,6 @@ export default function SearchPage() {
         <div className="absolute -right-24 bottom-0 w-[50vw] h-[60vh] bg-orange-500/10 rounded-full blur-[160px]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]"></div>
       </div>
-      <Navbar />
 
       <div className="relative z-10 px-8 md:px-16 lg:px-20 pt-32 pb-12">
         {/* Hero Section - Centered */}

@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar from "@/src/components/navbar";
 import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useEffect } from "react";
@@ -27,9 +26,7 @@ export default function Page() {
       <div
         className="min-h-screen grid place-items-center text-white"
         style={{ backgroundColor: "rgb(7, 9, 16)" }}
-      >
-        <div className="animate-pulse text-white/70">Loading profile…</div>
-      </div>
+      ></div>
     );
   }
 
@@ -41,8 +38,6 @@ export default function Page() {
         fontFamily: "Be Vietnam Pro, sans-serif",
       }}
     >
-      <Navbar />
-
       <main className="px-6 sm:px-10 lg:px-16 pt-24 pb-16 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">

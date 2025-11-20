@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Banner from "@/src/components/banner";
-import Navbar from "@/src/components/navbar";
 import Movies from "@/src/components/movies";
 import TVShows from "@/src/components/tvshows";
 import Anime from "@/src/components/anime";
@@ -32,7 +31,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Navbar />
       <Banner />
 
       {/* Section Selector */}

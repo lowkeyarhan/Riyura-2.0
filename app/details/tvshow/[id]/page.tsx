@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { Play, Heart, Bookmark, X } from "lucide-react";
-import Navbar from "@/src/components/navbar";
 import Footer from "@/src/components/footer";
 import { useAuth } from "@/src/hooks/useAuth";
 import {
@@ -246,8 +245,6 @@ export default function TVShowDetails() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: BG_COLOR }}>
-      <Navbar />
-
       {/* Trailer Modal */}
       {showTrailer && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95">
