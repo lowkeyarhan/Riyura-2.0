@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import LoadingDots from "./LoadingDots";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlay } from "@fortawesome/free-solid-svg-icons";
@@ -115,8 +116,8 @@ export default function Banner() {
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center text-white text-xl">
-          Loading…
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoadingDots />
         </div>
       )}
 

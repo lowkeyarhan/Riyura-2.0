@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import Navbar from "@/src/components/navbar";
+import LoadingDots from "@/src/components/LoadingDots";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -33,7 +34,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         className="min-h-screen grid place-items-center"
         style={{ backgroundColor: "rgb(7, 9, 16)" }}
       >
-        <div className="text-white/70 animate-pulse">Loading…</div>
+        <div className="flex flex-col items-center">
+          <LoadingDots />
+        </div>
       </div>
     );
   }

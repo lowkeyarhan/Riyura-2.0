@@ -15,6 +15,7 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/supabase";
+import LoadingDots from "@/src/components/LoadingDots";
 
 // Constants
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -310,7 +311,11 @@ export default function TVShowPlayer() {
           fontFamily: "Be Vietnam Pro, sans-serif",
         }}
       >
-        <div className="text-white text-xl font-semibold">Loading...</div>
+        <div className="flex flex-col items-center">
+          <div className="mb-4">
+            <LoadingDots />
+          </div>
+        </div>
       </div>
     );
   }

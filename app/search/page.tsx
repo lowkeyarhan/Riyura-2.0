@@ -61,12 +61,9 @@ const PLACEHOLDER_TEXTS = [
 const FONT_STYLE = { fontFamily: "Be Vietnam Pro, sans-serif" };
 const TRENDING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Simple in-memory cache
-let trendingCache: {
-  movies: TrendingItem[];
-  tv: TrendingItem[];
-  fetchedAt: number;
-} | null = null;
+// Use sessionStorage for trending cache
+const TRENDING_CACHE_KEY = "trendingCache";
+let trendingCache: null = null;
 
 // Icon Components
 const MovieIcon = () => (
@@ -173,10 +170,18 @@ export default function SearchPage() {
     try {
       const now = Date.now();
 
-      if (trendingCache && now - trendingCache.fetchedAt < TRENDING_CACHE_TTL) {
-        setTrendingMovies(trendingCache.movies);
-        setTrendingTV(trendingCache.tv);
-        return;
+      const cached = sessionStorage.getItem(TRENDING_CACHE_KEY);
+      if (cached) {
+        try {
+          const { movies, tv, fetchedAt } = JSON.parse(cached);
+          if (now - fetchedAt < TRENDING_CACHE_TTL) {
+            setTrendingMovies(movies);
+            setTrendingTV(tv);
+            return;
+          }
+        } catch {
+          sessionStorage.removeItem(TRENDING_CACHE_KEY);
+        }
       }
 
       const [moviesRes, tvRes] = await Promise.all([
@@ -189,7 +194,10 @@ export default function SearchPage() {
       const movies = moviesData.results?.slice(0, 6) || [];
       const tv = tvData.results?.slice(0, 6) || [];
 
-      trendingCache = { movies, tv, fetchedAt: now };
+      sessionStorage.setItem(
+        TRENDING_CACHE_KEY,
+        JSON.stringify({ movies, tv, fetchedAt: now })
+      );
       setTrendingMovies(movies);
       setTrendingTV(tv);
     } catch (error) {

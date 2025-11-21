@@ -7,7 +7,7 @@ import { ensureUserProfile } from "@/src/lib/database";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const [status, setStatus] = useState("Processing authentication...");
+  const [error, setError] = useState<string | null>(null);
   const hasRun = useRef(false);
 
   useEffect(() => {
@@ -24,20 +24,18 @@ export default function AuthCallbackPage() {
         } = await supabase.auth.getSession();
 
         if (sessionError) {
-          setStatus(`Error: ${sessionError.message}`);
+          setError(`Error: ${sessionError.message}`);
           setTimeout(() => router.push("/auth"), 3000);
           return;
         }
 
         if (!session) {
-          setStatus("No session found. Redirecting to sign in...");
+          setError("No session found. Redirecting to sign in...");
           setTimeout(() => router.push("/auth"), 2000);
           return;
         }
 
-        // Create user profile
-        setStatus("Creating your profile...");
-
+        // Create user profile silently
         await ensureUserProfile({
           uid: session.user.id,
           email: session.user.email!,
@@ -51,12 +49,10 @@ export default function AuthCallbackPage() {
             null,
         });
 
-        setStatus("Success! Redirecting to home...");
-
-        // Redirect to home
-        setTimeout(() => router.push("/home"), 1000);
+        // Redirect to home immediately
+        router.push("/home");
       } catch (error: any) {
-        setStatus(`Error: ${error.message}`);
+        setError(`Error: ${error.message}`);
         setTimeout(() => router.push("/auth"), 3000);
       }
     };
@@ -66,10 +62,11 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p className="text-xl">{status}</p>
-      </div>
+      {error && (
+        <div className="text-center">
+          <p className="text-xl">{error}</p>
+        </div>
+      )}
     </div>
   );
 }
