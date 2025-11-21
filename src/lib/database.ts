@@ -7,6 +7,7 @@ export interface Profile {
   display_name: string | null;
   email: string;
   photo_url: string | null;
+  onboarded: boolean;
   last_login: string | null;
   created_at: string;
 }
@@ -79,6 +80,7 @@ export async function ensureUserProfile(user: {
       email: user.email,
       display_name: user.displayName,
       photo_url: user.photoURL,
+      onboarded: false,
       last_login: now,
     };
 
@@ -88,13 +90,15 @@ export async function ensureUserProfile(user: {
       .select();
 
     if (insertError && insertError.code !== "23505") throw insertError;
-    return;
+    return profile;
   }
 
   await supabase
     .from("profiles")
     .update({ last_login: now })
     .eq("id", user.uid);
+  
+  return data;
 }
 
 // Watchlist Functions ------------------------------------------------------
@@ -279,6 +283,19 @@ export async function getRecentlyWatched(
 
   if (error) throw error;
   return data || [];
+}
+
+// Mark user as onboarded
+export async function markUserAsOnboarded(userId: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ onboarded: true })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Failed to update onboarded status:", error);
+    throw error;
+  }
 }
 
 // Remove from watch history

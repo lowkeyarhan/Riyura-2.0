@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   display_name TEXT,
   email TEXT NOT NULL,
   photo_url TEXT,
+  onboarded BOOLEAN DEFAULT FALSE,
   last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

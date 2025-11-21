@@ -36,7 +36,7 @@ export default function AuthCallbackPage() {
         }
 
         // Create user profile silently
-        await ensureUserProfile({
+        const profile = await ensureUserProfile({
           uid: session.user.id,
           email: session.user.email!,
           displayName:
@@ -49,8 +49,12 @@ export default function AuthCallbackPage() {
             null,
         });
 
-        // Redirect to home immediately
-        router.push("/home");
+        // Check if user needs onboarding
+        if (profile && !profile.onboarded) {
+          router.replace("/onboarding");
+        } else {
+          router.replace("/home");
+        }
       } catch (error: any) {
         setError(`Error: ${error.message}`);
         setTimeout(() => router.push("/auth"), 3000);

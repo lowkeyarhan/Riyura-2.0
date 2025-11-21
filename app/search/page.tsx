@@ -311,10 +311,15 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white relative overflow-hidden">
       {/* Background Effects */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute -left-32 top-16 w-[55vw] h-[55vh] bg-cyan-500/10 rounded-full blur-[140px]" />
-        <div className="absolute -right-24 bottom-0 w-[50vw] h-[60vh] bg-orange-500/10 rounded-full blur-[160px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]" />
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* 1. Base Black */}
+        <div className="absolute inset-0 bg-black" />
+        {/* 2. Deep Cyan Blob (Top Left) */}
+        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+        {/* 3. Deep Orange Blob (Bottom Right) */}
+        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
+        {/* 4. Vignette (Keeps edges dark) */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
       </div>
 
       <div className="relative z-10 px-8 md:px-16 lg:px-20 pt-32 pb-12">

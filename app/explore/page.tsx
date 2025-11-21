@@ -54,7 +54,7 @@ const FilterButton = ({ active, onClick, children, className = "" }: any) => (
     onClick={onClick}
     className={`px-4 py-2 rounded-full transition-all text-sm font-medium font-sans ${
       active
-        ? "bg-red-500 text-white shadow-lg shadow-red-500/20 scale-105"
+        ? "bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)] scale-105"
         : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
     } ${className}`}
   >
@@ -79,27 +79,27 @@ const MovieCard = ({
     : "/placeholder.jpg";
 
   return (
-    <div className="group relative rounded-2xl bg-white/[0.1] hover:bg-white/[0.08] transition-colors font-sans">
+    <div className="group relative rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] hover:border-white/10 transition-all duration-300 font-sans">
       <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden">
         <Image
           src={imageUrl}
           alt={title}
           fill
           sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 16vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-        <div className="absolute left-3 bottom-3 flex items-center gap-1 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm">
+        <div className="absolute left-3 bottom-3 flex items-center gap-1 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10">
           <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
           <span className="text-xs text-white font-semibold">
             {item.vote_average?.toFixed(1)}
           </span>
         </div>
 
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
           <button
-            className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
             onClick={() =>
               router.push(
                 item.media_type === "movie"
@@ -111,7 +111,7 @@ const MovieCard = ({
             <Play className="w-5 h-5 text-white fill-white ml-1" />
           </button>
           <button
-            className="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center hover:bg-white/20"
+            className="w-10 h-10 border-2 border-white/80 rounded-full flex items-center justify-center hover:bg-white/20 backdrop-blur-sm"
             onClick={() => onAddToWatchlist(item)}
           >
             <Plus className="w-5 h-5 text-white" />
@@ -130,7 +130,6 @@ const MovieCard = ({
 };
 
 export default function ExplorePage() {
-  // Session cache key for default explore content
   const EXPLORE_CACHE_KEY = "exploreDefaultCache";
   const router = useRouter();
   const { user } = useAuth();
@@ -149,7 +148,6 @@ export default function ExplorePage() {
       console.error("User not authenticated");
       return;
     }
-
     try {
       const watchlistItem = {
         tmdb_id: item.id,
@@ -159,25 +157,19 @@ export default function ExplorePage() {
         release_date: item.release_date || item.first_air_date || null,
         vote: item.vote_average,
       };
-
       await addToWatchlist(user.id, watchlistItem);
-      console.log("Added to watchlist:", watchlistItem.title);
       addNotification(`${watchlistItem.title} added to watchlist`, "success");
     } catch (error) {
-      console.error("Failed to add to watchlist:", error);
       addNotification("Failed to add to watchlist", "error");
     }
   };
 
-  // 1. Fetching Logic
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
 
     const fetchData = async () => {
       setLoading(true);
-
-      // Define "default" as: first page, Action genre selected, mediaType 'all'
       const isDefault =
         page === 1 &&
         selectedGenres.length === 1 &&
@@ -196,11 +188,9 @@ export default function ExplorePage() {
             setItems(results);
             setHasMore(cachedPage < total_pages);
             setLoading(false);
-            console.log("[Explore] ✅ Loaded default page data from cache");
             return;
           } catch (e) {
             sessionStorage.removeItem(EXPLORE_CACHE_KEY);
-            console.log("[Explore] ⚠️ Cache corrupted, cleared");
           }
         }
       }
@@ -208,11 +198,6 @@ export default function ExplorePage() {
       try {
         const genreParams = selectedGenres.join(",");
         const url = `/api/explore?page=${page}&genres=${genreParams}&mediaType=${mediaType}`;
-
-        console.log(
-          `[Explore] 🌐 Fetching: page=${page}, genres=[${selectedGenres}], type=${mediaType}`
-        );
-
         const res = await fetch(url, { signal });
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
@@ -222,15 +207,11 @@ export default function ExplorePage() {
         );
         setHasMore(data.page < data.total_pages);
 
-        // Store ONLY default page data
         if (isDefault && page === 1) {
           sessionStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(data));
-          console.log("[Explore] 💾 Cached default page data (Action genre)");
         }
       } catch (error: any) {
-        if (error.name !== "AbortError") {
-          console.error("[Explore] ❌ Fetch error:", error);
-        }
+        if (error.name !== "AbortError") console.error(error);
       } finally {
         if (!signal.aborted) setLoading(false);
       }
@@ -240,7 +221,6 @@ export default function ExplorePage() {
     return () => controller.abort();
   }, [page, selectedGenres, mediaType]);
 
-  // 2. Infinite Scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -250,7 +230,6 @@ export default function ExplorePage() {
       },
       { threshold: 0.1, rootMargin: "100px" }
     );
-
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
   }, [loading, hasMore]);
@@ -274,91 +253,112 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070910] pt-35 px-8 md:px-16 lg:px-20 pb-12">
-      {/* --- Filter Section --- */}
-      <div className="flex flex-col items-center gap-6 mb-8">
-        <div className="flex flex-wrap justify-center gap-3">
-          {GENRES.map((genre) => (
-            <FilterButton
-              key={genre}
-              active={selectedGenres.includes(genre)}
-              onClick={() => handleGenreToggle(genre)}
-            >
-              {genre}
-            </FilterButton>
-          ))}
-        </div>
+    // Using relative here so content sits on top of fixed background
+    <div className="relative min-h-screen bg-black pt-35 px-8 md:px-16 lg:px-20 pb-12 font-sans">
+      {/* --- STATIC BACKGROUND LAYER --- */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* 1. Base Black */}
+        <div className="absolute inset-0 bg-black" />
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/10">
-            {MEDIA_TYPES.map(({ label, value }) => (
+        {/* 2. Deep Cyan Blob (Top Left) */}
+        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+
+        {/* 3. Deep Orange Blob (Bottom Right) */}
+        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
+
+        {/* 4. Vignette (Keeps edges dark) */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+
+        {/* 5. Noise Texture */}
+        <div className="absolute inset-0 opacity-[0.06] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-150 mix-blend-overlay" />
+      </div>
+
+      {/* --- MAIN CONTENT (Raised z-index) --- */}
+      <div className="relative z-10">
+        {/* --- Filter Section --- */}
+        <div className="flex flex-col items-center gap-6 mb-8">
+          <div className="flex flex-wrap justify-center gap-3">
+            {GENRES.map((genre) => (
               <FilterButton
-                key={value}
-                active={mediaType === value}
-                onClick={() => handleTypeChange(value)}
+                key={genre}
+                active={selectedGenres.includes(genre)}
+                onClick={() => handleGenreToggle(genre)}
               >
-                {label}
+                {genre}
               </FilterButton>
             ))}
           </div>
 
-          {selectedGenres.length > 0 && (
-            <button
-              onClick={() => {
-                setPage(1);
-                setSelectedGenres([]);
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
-            >
-              <X size={14} /> Clear
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* --- Media Grid --- */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
-        {items.map((item, idx) => (
-          <MovieCard
-            key={`${item.id}-${idx}`}
-            item={item}
-            user={user}
-            onAddToWatchlist={handleAddToWatchlist}
-          />
-        ))}
-
-        {/* --- Skeleton Loaders (Shows on Initial Load AND Infinite Scroll) --- */}
-        {loading &&
-          Array.from({ length: 12 }).map((_, i) => (
-            <div key={`skeleton-${i}`} className="animate-pulse space-y-3">
-              <div className="aspect-[2/3] rounded-xl bg-white/5" />
-              <div className="space-y-2 px-1">
-                <div className="h-4 bg-white/10 rounded w-3/4" />
-                <div className="h-3 bg-white/5 rounded w-1/4" />
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md">
+              {MEDIA_TYPES.map(({ label, value }) => (
+                <FilterButton
+                  key={value}
+                  active={mediaType === value}
+                  onClick={() => handleTypeChange(value)}
+                >
+                  {label}
+                </FilterButton>
+              ))}
             </div>
-          ))}
-      </div>
 
-      {/* --- Infinite Scroll Trigger --- */}
-      <div ref={loadMoreRef} className="h-10 w-full mt-8" />
-
-      {!hasMore && items.length > 0 && (
-        <div className="text-center text-gray-500 text-sm mt-8 pb-8">
-          You've reached the end
+            {selectedGenres.length > 0 && (
+              <button
+                onClick={() => {
+                  setPage(1);
+                  setSelectedGenres([]);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/70 bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <X size={14} /> Clear
+              </button>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* --- Scroll To Top --- */}
-      {showTopBtn && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 backdrop-blur-2xl text-white rounded-full cursor-pointer px-4 py-3 shadow-2xl hover:scale-102 transition-all flex items-center gap-2 font-semibold "
-        >
-          <ArrowUp size={18} />
-          Scroll
-        </button>
-      )}
+        {/* --- Media Grid --- */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
+          {items.map((item, idx) => (
+            <MovieCard
+              key={`${item.id}-${idx}`}
+              item={item}
+              user={user}
+              onAddToWatchlist={handleAddToWatchlist}
+            />
+          ))}
+
+          {loading &&
+            Array.from({ length: 12 }).map((_, i) => (
+              <div key={`skeleton-${i}`} className="animate-pulse space-y-3">
+                <div className="aspect-[2/3] rounded-xl bg-white/5 border border-white/5" />
+                <div className="space-y-2 px-1">
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  <div className="h-3 bg-white/5 rounded w-1/4" />
+                </div>
+              </div>
+            ))}
+        </div>
+
+        {/* --- Infinite Scroll Trigger --- */}
+        <div ref={loadMoreRef} className="h-10 w-full mt-8" />
+
+        {!hasMore && items.length > 0 && (
+          <div className="text-center text-white/40 text-sm mt-8 pb-8">
+            You've reached the end
+          </div>
+        )}
+
+        {/* --- Scroll To Top --- */}
+        {showTopBtn && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 backdrop-blur-xl bg-white/10 border border-white/10 text-white rounded-full cursor-pointer px-4 py-3 shadow-2xl hover:bg-white/20 hover:scale-105 transition-all flex items-center gap-2 font-semibold"
+          >
+            <ArrowUp size={18} />
+            Scroll
+          </button>
+        )}
+      </div>
     </div>
   );
 }
