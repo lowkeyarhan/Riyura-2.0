@@ -130,6 +130,8 @@ const MovieCard = ({
 };
 
 export default function ExplorePage() {
+  // Session cache key for default explore content
+  const EXPLORE_CACHE_KEY = "exploreDefaultCache";
   const router = useRouter();
   const { user } = useAuth();
   const { addNotification } = useNotification();
@@ -174,28 +176,67 @@ export default function ExplorePage() {
 
     const fetchData = async () => {
       setLoading(true);
+
+      // Define "default" as: first page, Action genre selected, mediaType 'all'
+      const isDefault =
+        page === 1 &&
+        selectedGenres.length === 1 &&
+        selectedGenres[0] === "Action" &&
+        mediaType === "all";
+
+      if (isDefault) {
+        const cached = sessionStorage.getItem(EXPLORE_CACHE_KEY);
+        if (cached) {
+          try {
+            const {
+              results,
+              page: cachedPage,
+              total_pages,
+            } = JSON.parse(cached);
+            setItems(results);
+            setHasMore(cachedPage < total_pages);
+            setLoading(false);
+            console.log("[Explore] ✅ Loaded default page data from cache");
+            return;
+          } catch (e) {
+            sessionStorage.removeItem(EXPLORE_CACHE_KEY);
+            console.log("[Explore] ⚠️ Cache corrupted, cleared");
+          }
+        }
+      }
+
       try {
         const genreParams = selectedGenres.join(",");
         const url = `/api/explore?page=${page}&genres=${genreParams}&mediaType=${mediaType}`;
 
+        console.log(
+          `[Explore] 🌐 Fetching: page=${page}, genres=[${selectedGenres}], type=${mediaType}`
+        );
+
         const res = await fetch(url, { signal });
         if (!res.ok) throw new Error("Fetch failed");
-
         const data = await res.json();
 
         setItems((prev) =>
           page === 1 ? data.results : [...prev, ...data.results]
         );
         setHasMore(data.page < data.total_pages);
+
+        // Store ONLY default page data
+        if (isDefault && page === 1) {
+          sessionStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(data));
+          console.log("[Explore] 💾 Cached default page data (Action genre)");
+        }
       } catch (error: any) {
-        if (error.name !== "AbortError") console.error("Error:", error);
+        if (error.name !== "AbortError") {
+          console.error("[Explore] ❌ Fetch error:", error);
+        }
       } finally {
         if (!signal.aborted) setLoading(false);
       }
     };
 
     fetchData();
-
     return () => controller.abort();
   }, [page, selectedGenres, mediaType]);
 
