@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import LoadingDots from "./LoadingDots";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, Star, Play } from "lucide-react";
 
+// --- Types ---
 interface Anime {
   id: number;
   name: string;
@@ -22,31 +24,109 @@ interface AnimeProps {
   onTotalItemsChange: (total: number) => void;
 }
 
+// --- Constants ---
 const CACHE_KEY = "homepage:trending-anime";
 const CACHE_DURATION = 15 * 60 * 1000;
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-const formatDate = (dateString: string) => {
+// --- Utils ---
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "Unknown";
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
-    day: "numeric",
   });
 };
 
-const getRating = (vote: number) => (vote / 2).toFixed(1);
+// --- Sub-Component: Skeleton ---
+const AnimeSkeleton = () => (
+  <div className="relative aspect-[2/3] rounded-xl bg-[#1a1d29] border border-white/5 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 animate-pulse" />
+  </div>
+);
 
-const getImageUrl = (posterPath: string) =>
-  posterPath ? `${IMAGE_BASE_URL}${posterPath}` : "/placeholder.jpg";
+// --- Sub-Component: Anime Card ---
+const AnimeCard = ({
+  anime,
+  onClick,
+}: {
+  anime: Anime;
+  onClick: () => void;
+}) => {
+  const date = anime.first_air_date || anime.release_date;
 
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      onClick={onClick}
+      className="
+        group relative cursor-pointer rounded-xl overflow-hidden 
+        bg-[#151821] 
+        border border-white/5 
+        hover:border-white/20
+        transition-colors duration-300
+        shadow-lg
+      "
+    >
+      {/* Image Container */}
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#0f1115]">
+        <Image
+          src={
+            anime.poster_path
+              ? `${IMAGE_BASE_URL}${anime.poster_path}`
+              : "/placeholder.jpg"
+          }
+          alt={anime.name || "Anime"}
+          fill
+          priority={true}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105 blur-0 filter-none"
+        />
+
+        {/* HOVER OVERLAY (The Dark Gradient) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+
+        {/* Rating Badge */}
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md bg-[#0f1115]/90 border border-white/10 shadow-sm z-20">
+          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+          <span className="text-xs font-bold text-white">
+            {anime.vote_average.toFixed(1)}
+          </span>
+        </div>
+
+        {/* Center Play Button */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+          <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)] transform scale-90 group-hover:scale-100 transition-transform duration-300">
+            <Play className="w-5 h-5 fill-black ml-1" />
+          </div>
+        </div>
+
+        {/* TEXT DETAILS (Slide Up Effect) */}
+        <div className="absolute bottom-0 inset-x-0 p-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-20">
+          <h3 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
+            {anime.name}
+          </h3>
+
+          <div className="flex items-center gap-2 text-xs text-gray-300/90">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{formatDate(date)}</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- Main Component ---
 export default function Anime({
   currentPage,
   itemsPerPage,
   onTotalItemsChange,
 }: AnimeProps) {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [anime, setAnime] = useState<Anime[]>([]);
+  const [animeList, setAnimeList] = useState<Anime[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +139,7 @@ export default function Anime({
         if (cached) {
           const { data, timestamp } = JSON.parse(cached);
           if (Date.now() - timestamp < CACHE_DURATION) {
-            setAnime(data.results || []);
+            setAnimeList(data.results || []);
             setLoading(false);
             return;
           }
@@ -69,14 +149,14 @@ export default function Anime({
         if (!response.ok) throw new Error("Failed to fetch anime");
 
         const data = await response.json();
-        setAnime(data.results || []);
+        setAnimeList(data.results || []);
         localStorage.setItem(
           CACHE_KEY,
           JSON.stringify({ data, timestamp: Date.now() })
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
-        setAnime([]);
+        setAnimeList([]);
       } finally {
         setLoading(false);
       }
@@ -85,116 +165,69 @@ export default function Anime({
     fetchAnime();
   }, []);
 
-  const filteredAnime = anime.filter((show) =>
-    (show.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   useEffect(() => {
-    onTotalItemsChange(filteredAnime.length);
-  }, [filteredAnime.length, onTotalItemsChange]);
+    onTotalItemsChange(animeList.length);
+  }, [animeList.length, onTotalItemsChange]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAnime = filteredAnime.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedAnime = animeList.slice(startIndex, startIndex + itemsPerPage);
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-96">
-        <div className="text-red-500 text-lg">Error: {error}</div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-96">
-        <LoadingDots />
+      <div className="flex flex-col justify-center items-center min-h-[400px] text-center">
+        <div className="text-red-400 text-lg mb-2">Unable to load content</div>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-sm text-gray-400 hover:text-white underline"
+        >
+          Try refreshing
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-        {paginatedAnime.map((show) => (
-          <div
-            key={show.id}
-            className="group relative cursor-pointer rounded-xl overflow-hidden hover:shadow-2xl hover:shadow-black/50 transition-shadow"
-            onClick={() => {
-              const path = show.media_type === "movie" ? "movie" : "tvshow";
-              router.push(`/details/${path}/${show.id}`);
-            }}
-          >
-            <div className="relative aspect-2/3">
-              <Image
-                src={getImageUrl(show.poster_path)}
-                alt={show.name || "Anime"}
-                fill
-                className="object-cover group-hover:brightness-50 transition-all duration-300"
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-              />
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%)",
+    <div className="min-h-screen w-full">
+      <motion.div
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 md:gap-6"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.03,
+            },
+          },
+        }}
+      >
+        {loading ? (
+          Array.from({ length: itemsPerPage }).map((_, i) => (
+            <AnimeSkeleton key={`skeleton-${i}`} />
+          ))
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {paginatedAnime.map((show) => (
+              <AnimeCard
+                key={show.id}
+                anime={show}
+                onClick={() => {
+                  // Determine route based on media type logic
+                  const path = show.media_type === "movie" ? "movie" : "tvshow";
+                  router.push(`/details/${path}/${show.id}`);
                 }}
               />
-            </div>
+            ))}
+          </AnimatePresence>
+        )}
+      </motion.div>
 
-            <div className="absolute inset-0 flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="space-y-3">
-                <h3 className="text-lg font-bold text-white leading-tight">
-                  {show.name}
-                </h3>
-
-                <div className="flex items-center gap-3 text-sm">
-                  {(show.first_air_date || show.release_date) && (
-                    <div className="flex items-center gap-1 text-gray-300">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <rect
-                          x="3"
-                          y="4"
-                          width="18"
-                          height="18"
-                          rx="2"
-                          ry="2"
-                        />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                      </svg>
-                      <span>
-                        {formatDate(
-                          show.first_air_date || show.release_date || ""
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  {show.vote_average && (
-                    <div className="flex items-center gap-1 text-yellow-400">
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                      </svg>
-                      <span className="font-semibold">
-                        {getRating(show.vote_average)}/5
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {!loading && paginatedAnime.length === 0 && (
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-gray-500 gap-2">
+          <p className="text-lg">No anime found</p>
+        </div>
+      )}
     </div>
   );
 }

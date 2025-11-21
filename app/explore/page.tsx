@@ -3,10 +3,21 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Play, Plus, Star, ArrowUp, X } from "lucide-react";
+import {
+  Play,
+  Plus,
+  Star,
+  ArrowUp,
+  X,
+  Film,
+  Tv,
+  Sparkles,
+  Filter,
+} from "lucide-react";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useNotification } from "@/src/lib/NotificationContext";
 import { addToWatchlist } from "@/src/lib/database";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- Constants ---
 const GENRES = [
@@ -31,9 +42,9 @@ const GENRES = [
 ];
 
 const MEDIA_TYPES = [
-  { label: "All", value: "all" },
-  { label: "Movies", value: "movie" },
-  { label: "TV", value: "tv" },
+  { label: "All", value: "all", icon: Sparkles },
+  { label: "Movies", value: "movie", icon: Film },
+  { label: "TV Series", value: "tv", icon: Tv },
 ];
 
 // --- Types ---
@@ -49,19 +60,6 @@ interface MediaItem {
 }
 
 // --- Sub-Components ---
-const FilterButton = ({ active, onClick, children, className = "" }: any) => (
-  <button
-    onClick={onClick}
-    className={`px-4 py-2 rounded-full transition-all text-sm font-medium font-sans ${
-      active
-        ? "bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)] scale-105"
-        : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
-    } ${className}`}
-  >
-    {children}
-  </button>
-);
-
 const MovieCard = ({
   item,
   user,
@@ -79,27 +77,28 @@ const MovieCard = ({
     : "/placeholder.jpg";
 
   return (
-    <div className="group relative rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] hover:border-white/10 transition-all duration-300 font-sans">
-      <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden">
+    <div className="group relative rounded-2xl bg-[#151821] border border-white/5 hover:border-white/20 transition-all duration-300 font-sans shadow-lg">
+      <div className="relative aspect-[2/3] rounded-t-xl overflow-hidden bg-[#0f1115]">
         <Image
           src={imageUrl}
           alt={title}
           fill
+          priority={true}
           sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 16vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-500 group-hover:scale-105 blur-0 filter-none"
         />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#151821] via-[#151821]/60 to-transparent" />
 
-        <div className="absolute left-3 bottom-3 flex items-center gap-1 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10">
+        <div className="absolute left-3 bottom-3 flex items-center gap-1 px-2 py-1 rounded-md bg-[#0f1115]/90 border border-white/10 shadow-sm z-10">
           <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
           <span className="text-xs text-white font-semibold">
             {item.vote_average?.toFixed(1)}
           </span>
         </div>
 
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
+        <div className="absolute inset-0 bg-[#0f1115]/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 z-20">
           <button
-            className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
             onClick={() =>
               router.push(
                 item.media_type === "movie"
@@ -108,19 +107,19 @@ const MovieCard = ({
               )
             }
           >
-            <Play className="w-5 h-5 text-white fill-white ml-1" />
+            <Play className="w-4 h-4 fill-black ml-0.5" />
           </button>
           <button
-            className="w-10 h-10 border-2 border-white/80 rounded-full flex items-center justify-center hover:bg-white/20 backdrop-blur-sm"
+            className="w-10 h-10 border border-white/30 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-colors"
             onClick={() => onAddToWatchlist(item)}
           >
-            <Plus className="w-5 h-5 text-white" />
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       <div className="p-3">
-        <h3 className="text-white text-base font-semibold truncate group-hover:text-red-500 transition-colors">
+        <h3 className="text-white text-base font-semibold truncate group-hover:text-orange-500 transition-colors">
           {title}
         </h3>
         <p className="text-sm text-gray-400">{year}</p>
@@ -143,6 +142,7 @@ export default function ExplorePage() {
   const [showTopBtn, setShowTopBtn] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
+  // --- Logic Handlers (Unchanged) ---
   const handleAddToWatchlist = async (item: MediaItem) => {
     if (!user) {
       console.error("User not authenticated");
@@ -243,7 +243,7 @@ export default function ExplorePage() {
   const handleGenreToggle = (genre: string) => {
     setPage(1);
     setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [genre]
     );
   };
 
@@ -253,64 +253,109 @@ export default function ExplorePage() {
   };
 
   return (
-    // Using relative here so content sits on top of fixed background
-    <div className="relative min-h-screen bg-black pt-35 px-8 md:px-16 lg:px-20 pb-12 font-sans">
-      {/* --- STATIC BACKGROUND LAYER --- */}
+    <div className="relative min-h-screen bg-black pt-28 px-6 md:px-16 lg:px-16 pb-12 font-sans">
+      {/* --- STATIC BACKGROUND LAYER (Matches Watchlist/Search) --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* 1. Base Black */}
         <div className="absolute inset-0 bg-black" />
-
-        {/* 2. Deep Cyan Blob (Top Left) */}
         <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
-
-        {/* 3. Deep Orange Blob (Bottom Right) */}
         <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
-
-        {/* 4. Vignette (Keeps edges dark) */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
-
-        {/* 5. Noise Texture */}
         <div className="absolute inset-0 opacity-[0.06] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-150 mix-blend-overlay" />
       </div>
 
-      {/* --- MAIN CONTENT (Raised z-index) --- */}
       <div className="relative z-10">
-        {/* --- Filter Section --- */}
-        <div className="flex flex-col items-center gap-6 mb-8">
-          <div className="flex flex-wrap justify-center gap-3">
-            {GENRES.map((genre) => (
-              <FilterButton
-                key={genre}
-                active={selectedGenres.includes(genre)}
-                onClick={() => handleGenreToggle(genre)}
-              >
-                {genre}
-              </FilterButton>
-            ))}
+        {/* --- HERO SECTION (Matching Aesthetics) --- */}
+        <div className="flex flex-col gap-8 mb-12">
+          {/* 1. Heading */}
+          <div className="text-center">
+            <h1
+              className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 tracking-tight mb-2"
+              style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+            >
+              Explore Universe
+            </h1>
+            <p className="text-gray-400 text-lg">
+              Dive into millions of movies and TV shows.
+            </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md">
-              {MEDIA_TYPES.map(({ label, value }) => (
-                <FilterButton
-                  key={value}
-                  active={mediaType === value}
-                  onClick={() => handleTypeChange(value)}
-                >
-                  {label}
-                </FilterButton>
-              ))}
+          {/* 2. Unified Control Bar (Sticky, Fake Glass) */}
+          <div className="sticky top-24 z-30 flex flex-col md:flex-row items-start md:items-center gap-4 p-1 rounded-2xl bg-[#1518215f] border border-white/10 shadow-2xl">
+            {/* Left: Media Type Switcher */}
+            <div className="flex p-1 rounded-2xl relative">
+              {MEDIA_TYPES.map((type) => {
+                const isActive = mediaType === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    onClick={() => handleTypeChange(type.value)}
+                    className={`relative cursor-pointer flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors z-10 ${
+                      isActive
+                        ? "text-white"
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeMediaType"
+                        className="absolute inset-0 bg-[#1f232e3f] rounded-xl border border-white/10 shadow-sm -z-10"
+                        transition={{
+                          type: "spring",
+                          bounce: 0.2,
+                          duration: 0.6,
+                        }}
+                      />
+                    )}
+                    <type.icon className="w-4 h-4" />
+                    <span className="hidden sm:block">{type.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {selectedGenres.length > 0 && (
+            {/* Divider (Desktop only) */}
+            <div className="hidden md:block w-px h-8 bg-white/10 mx-2" />
+
+            {/* Right: Horizontal Genre Scroll */}
+            <div className="relative bg-transparent flex-1 w-full overflow-hidden group/scroll">
+              {/* Scroll Container */}
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-2 py-1 w-full relative">
+                {/* Filter Label */}
+                <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-wider px-2 border-r border-white/10 mr-2 flex-shrink-0">
+                  <Filter className="w-3 h-3" />
+                  <span>Genre</span>
+                </div>
+
+                {GENRES.map((genre) => {
+                  const isSelected = selectedGenres.includes(genre);
+                  return (
+                    <button
+                      key={genre}
+                      onClick={() => handleGenreToggle(genre)}
+                      className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all border ${
+                        isSelected
+                          ? "bg-white text-black border-white"
+                          : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      {genre}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Clear Filters Button (Only visible if needed) */}
+            {selectedGenres.length > 0 && selectedGenres[0] !== "Action" && (
               <button
                 onClick={() => {
                   setPage(1);
-                  setSelectedGenres([]);
+                  setSelectedGenres(["Action"]);
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/70 bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors flex-shrink-0"
+                title="Reset Filters"
               >
-                <X size={14} /> Clear
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -327,6 +372,7 @@ export default function ExplorePage() {
             />
           ))}
 
+          {/* --- REVERTED SKELETON ANIMATION (Original Style) --- */}
           {loading &&
             Array.from({ length: 12 }).map((_, i) => (
               <div key={`skeleton-${i}`} className="animate-pulse space-y-3">
@@ -352,7 +398,7 @@ export default function ExplorePage() {
         {showTopBtn && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 backdrop-blur-xl bg-white/10 border border-white/10 text-white rounded-full cursor-pointer px-4 py-3 shadow-2xl hover:bg-white/20 hover:scale-105 transition-all flex items-center gap-2 font-semibold"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 backdrop-blur-2xl  text-white rounded-full cursor-pointer px-5 py-3 shadow-2xl hover:bg-white hover:text-black transition-all flex items-center gap-2 font-bold"
           >
             <ArrowUp size={18} />
             Scroll

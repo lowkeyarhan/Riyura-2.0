@@ -322,7 +322,7 @@ export default function SearchPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
       </div>
 
-      <div className="relative z-10 px-8 md:px-16 lg:px-20 pt-32 pb-12">
+      <div className="relative z-10 px-8 md:px-16 lg:px-16 pt-32 pb-12">
         {/* Hero Section */}
         {!lastQuery && (
           <div className="text-center mb-16 max-w-5xl mx-auto">

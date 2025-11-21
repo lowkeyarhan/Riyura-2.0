@@ -2,11 +2,20 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
+import { motion } from "framer-motion";
+
+const NAV_LINKS = [
+  { path: "/home", label: "H O M E" },
+  { path: "/watchlist", label: "W A T C H L I S T" },
+  { path: "/search", label: "S E A R C H" },
+  { path: "/explore", label: "E X P L O R E" },
+];
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, loading, firstName, avatarUrl } = useAuth();
 
   const handleProfileClick = () => {
@@ -18,14 +27,21 @@ export default function Navbar() {
   };
 
   return (
+    // Kept original background and positioning
     <nav className="absolute top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
-      <div className="px-8 md:px-16 lg:px-20 py-4 flex items-center justify-between">
+      <div className="px-8 md:px-16 lg:px-16 py-4 flex items-center justify-between">
+        {/* LOGO */}
         <Link
           href="/home"
           prefetch={true}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0 cursor-pointer"
+          className="group flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0 cursor-pointer"
         >
-          <Image src="/logo.png" alt="Riyura Logo" width={32} height={32} />
+          <motion.div
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 0.7, ease: "easeInOut" }}
+          >
+            <Image src="/logo.png" alt="Riyura Logo" width={32} height={32} />
+          </motion.div>
           <span
             className="text-white font-bold text-xl"
             style={{ fontFamily: "'Bruno Ace', sans-serif" }}
@@ -34,46 +50,50 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center Nav Links */}
-        <div className="hidden md:flex items-center justify-center gap-12 text-sm uppercase tracking-wider text-gray-300 flex-1">
-          <Link
-            href="/home"
-            prefetch={true}
-            className="hover:text-white transition-colors cursor-pointer"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            H O M E
-          </Link>
-          <Link
-            href="/watchlist"
-            prefetch={true}
-            className="hover:text-white transition-colors cursor-pointer"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            W A T C H L I S T
-          </Link>
-          <Link
-            href="/search"
-            prefetch={true}
-            className="hover:text-white transition-colors cursor-pointer"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            S E A R C H
-          </Link>
-          <Link
-            href="/explore"
-            prefetch={true}
-            className="hover:text-white transition-colors cursor-pointer"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            E X P L O R E
-          </Link>
+        {/* ANIMATED NAV LINKS */}
+        <div className="hidden md:flex items-center justify-center gap-12 text-sm uppercase tracking-wider flex-1">
+          {NAV_LINKS.map((link) => {
+            const isActive = pathname === link.path;
+
+            return (
+              <Link
+                key={link.path}
+                href={link.path}
+                prefetch={true}
+                className="relative py-1 cursor-pointer"
+                style={{ fontFamily: "Montserrat, sans-serif" }}
+              >
+                <span
+                  className={`transition-colors duration-300 ${
+                    isActive ? "text-white" : "text-gray-300 hover:text-white"
+                  }`}
+                >
+                  {link.label}
+                </span>
+
+                {/* THE SLIDING ANIMATION */}
+                {isActive && (
+                  <motion.div
+                    layoutId="navbar-underline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                    transition={{
+                      type: "spring",
+                      stiffness: 350,
+                      damping: 30,
+                    }}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </div>
 
+        {/* AUTH / PROFILE BOX */}
         <div className="flex items-center gap-3">
-          {/* Auth / Profile Box */}
-          <div
+          <motion.div
             onClick={handleProfileClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             className="flex items-center backdrop-blur-md gap-3 pl-4 pr-2 py-2 rounded-lg border border-white/10 border-gradient cursor-pointer hover:border-white/20 transition-all"
           >
             {loading ? (
@@ -117,7 +137,7 @@ export default function Navbar() {
                 S I G N&nbsp;I N
               </span>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
     </nav>
