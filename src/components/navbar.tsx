@@ -34,12 +34,9 @@ export default function Navbar() {
         <Link
           href="/home"
           prefetch={true}
-          className="group flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0 cursor-pointer"
+          className="group flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0"
         >
-          <motion.div
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.7, ease: "easeInOut" }}
-          >
+          <motion.div transition={{ duration: 0.7, ease: "easeInOut" }}>
             <Image src="/logo.png" alt="Riyura Logo" width={32} height={32} />
           </motion.div>
           <span
@@ -92,7 +89,6 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <motion.div
             onClick={handleProfileClick}
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center backdrop-blur-md gap-3 pl-4 pr-2 py-2 rounded-lg border border-white/10 border-gradient cursor-pointer hover:border-white/20 transition-all"
           >
