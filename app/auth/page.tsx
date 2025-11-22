@@ -8,6 +8,33 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/supabase";
 import { ensureUserProfile } from "@/src/lib/database";
 
+// --- OPTIMIZED VARIANTS (FASTER) ---
+const pageVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.6, // Background fades in quickly
+      staggerChildren: 0.15, // Items start appearing almost immediately
+      delayChildren: 0.1, // Tiny pause just to let the background settle for a split second
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 }, // Reduced distance (was 30) for snappier feel
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100, // Increased stiffness (was 45) for faster movement
+      damping: 15,
+    },
+  },
+};
+// -----------------------------------
+
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
@@ -44,7 +71,6 @@ export default function AuthPage() {
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          // Create user profile in database
           await ensureUserProfile({
             uid: data.user.id,
             email: data.user.email!,
@@ -115,17 +141,30 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center relative overflow-hidden py-12">
-      {/* Background Effects */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      {/* Background Effects - Starts Immediately */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="absolute inset-0 z-0 pointer-events-none"
+      >
         <div className="absolute -left-32 top-16 w-[55vw] h-[55vh] bg-cyan-500/10 rounded-full blur-[140px]"></div>
         <div className="absolute -right-24 bottom-0 w-[50vw] h-[60vh] bg-orange-500/10 rounded-full blur-[160px]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]"></div>
-      </div>
+      </motion.div>
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full h-full max-w-6xl flex items-center justify-center gap-12">
-        {/* Phone Mockup - Hidden on mobile, visible on lg screens */}
-        <div className="hidden lg:flex items-center justify-center w-full h-[80vh]">
+      {/* Main Container - Animations start almost immediately */}
+      <motion.div
+        className="relative z-10 w-full h-full max-w-6xl flex items-center justify-center gap-12"
+        initial="hidden"
+        animate="visible"
+        variants={pageVariants}
+      >
+        {/* Phone Mockup */}
+        <motion.div
+          className="hidden lg:flex items-center justify-center w-full h-[80vh]"
+          variants={itemVariants}
+        >
           <div
             className="relative h-full w-160 max-w-full overflow-hidden rounded-2xl"
             style={{ contain: "layout paint size", willChange: "transform" }}
@@ -138,10 +177,10 @@ export default function AuthPage() {
               priority
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Auth Container */}
-        <div className="w-full max-w-md">
+        <motion.div className="w-full max-w-md" variants={itemVariants}>
           {/* Logo */}
           <div className="text-center mb-8">
             <Link href="/landing" className="inline-flex items-center gap-3">
@@ -435,8 +474,8 @@ export default function AuthPage() {
               </p>
             )}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

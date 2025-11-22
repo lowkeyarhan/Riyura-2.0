@@ -57,7 +57,6 @@ const TVShowCard = ({
       layout
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      onClick={onClick}
       className="
         group relative cursor-pointer rounded-xl overflow-hidden 
         bg-[#151821] 
@@ -79,7 +78,7 @@ const TVShowCard = ({
           fill
           priority={true}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105 blur-0 filter-none"
+          className="object-cover transition-transform duration-500 group-hover:scale-102 blur-0 filter-none"
         />
 
         {/* HOVER OVERLAY (The Dark Gradient) */}
@@ -95,7 +94,19 @@ const TVShowCard = ({
 
         {/* Center Play Button */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-          <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)] transform scale-90 group-hover:scale-100 transition-transform duration-300">
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={`Open details for ${show.name || "show"}`}
+            onClick={onClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }}
+            className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)] transform scale-90 group-hover:scale-100 transition-transform duration-300 cursor-pointer focus:outline-none"
+          >
             <Play className="w-5 h-5 fill-black ml-1" />
           </div>
         </div>
