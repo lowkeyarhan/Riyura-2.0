@@ -75,16 +75,14 @@ const ServerRow = ({
       ${
         isActive
           ? "bg-gradient-to-r from-orange-600/10 to-red-600/10 border-orange-500/50"
-          : "bg-[#0f1115] border-white/5 hover:bg-[#1a1d29] hover:border-white/10"
+          : "bg-[#29292930] border-white/5 hover:bg-[#1a1d29] hover:border-white/10"
       }
     `}
   >
     <div className="flex items-center gap-3">
       <div
         className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-          isActive
-            ? "bg-orange-600 text-white"
-            : "bg-[#151821] text-gray-500 group-hover:text-white"
+          isActive ? "text-orange-600" : " text-gray-500 group-hover:text-white"
         }`}
       >
         <Wifi size={14} />
@@ -262,15 +260,15 @@ export default function TVShowPlayer() {
         <div className="absolute inset-0 opacity-[0.06] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-150 mix-blend-overlay" />
       </div>
 
-      {/* --- SECTION 1: THEATER (Viewport Height) --- */}
+      {/* --- SECTION 1: THEATER (Full Viewport) --- */}
       <div className="relative z-10 h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 h-full overflow-hidden">
           {/* Left: Player (9 cols) */}
-          <div className="lg:col-span-9 flex flex-col h-full">
-            <div className="relative w-full h-full rounded-3xl overflow-hidden bg-black shadow-2xl ring-1 ring-white/10 group">
+          <div className="lg:col-span-9 flex flex-col h-full border border-white/5 rounded-3xl">
+            <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl group">
               <iframe
                 src={servers[activeServerIndex].link}
-                className="w-full h-full object-contain bg-black"
+                className="w-full h-full object-contain border border-white/5"
                 frameBorder="0"
                 allowFullScreen
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -347,106 +345,112 @@ export default function TVShowPlayer() {
         </div>
       </div>
 
-      {/* --- SECTION 2: EPISODE SELECTOR (Below Fold) --- */}
+      {/* --- SECTION 2: EPISODE BROWSER (Below Fold, Variable Height) --- */}
       <div className="relative z-10 px-4 md:px-8 lg:px-12 pb-16 max-w-[1920px] mx-auto">
-        <div className="flex flex-col bg-[#1518215f] border border-white/5 rounded-3xl overflow-hidden shadow-xl min-h-[800px]">
+        {/* The h-auto here allows it to shrink/grow based on content, fixing the empty space issue */}
+        <div className="flex flex-col bg-[#1518215f] border border-white/5 rounded-3xl overflow-hidden shadow-xl h-auto min-h-[300px]">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/5 bg-[#151821]">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                <LayoutGrid size={20} className="text-orange-500" />
-                Browse Episodes
+          <div className="p-6">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest">
+                Seasons and episodes
               </h3>
-              <div className="hidden sm:flex relative">
-                <input
-                  type="text"
-                  placeholder="Search episodes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-[#0f1115] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-white/30 w-64 focus:outline-none focus:border-white/20"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+              <div className="flex-1 flex justify-center">
+                <div className="relative w-full max-w-xs">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#29292930] border border-white/10 rounded-2xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/20"
+                  />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/40" />
+                </div>
               </div>
-            </div>
-            <div className="flex bg-[#0f1115] rounded-lg p-1 border border-white/5">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-md transition ${
-                  viewMode === "grid"
-                    ? "bg-white/10 text-white"
-                    : "text-gray-500 hover:text-gray-300"
-                }`}
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 rounded-md transition ${
-                  viewMode === "list"
-                    ? "bg-white/10 text-white"
-                    : "text-gray-500 hover:text-gray-300"
-                }`}
-              >
-                <List size={16} />
-              </button>
+              <div className="flex rounded-lg p-0.5 border border-white/5">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-md transition ${
+                    viewMode === "grid"
+                      ? "bg-white/10 text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-md transition ${
+                    viewMode === "list"
+                      ? "bg-white/10 text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <List size={14} />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr] min-h-0">
-            {/* Sidebar: Seasons */}
-            <div className="border-r border-white/5 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 p-4 space-y-2 bg-[#12141a] max-h-[800px]">
-              {validSeasons.map((season: any) => {
-                const isActive = selectedSeason === season.season_number;
-                return (
-                  <button
-                    key={season.season_number}
-                    onClick={() => setSelectedSeason(season.season_number)}
-                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all group text-left ${
-                      isActive
-                        ? "bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 shadow-inner"
-                        : "hover:bg-white/5 border border-transparent"
-                    }`}
-                  >
-                    <div className="relative w-12 h-16 flex-shrink-0 overflow-hidden rounded-md bg-black shadow-sm">
-                      <Image
-                        src={getImageUrl(season.poster_path, 200)}
-                        alt={`S${season.season_number}`}
-                        fill
-                        className={`object-cover ${
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-[240px_1fr] h-auto">
+            {/* Sidebar: Seasons (Sticky) */}
+            <div className=" pt-2 px-6 pb-6 h-full max-h-[800px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+              <div className="flex flex-col gap-4">
+                {validSeasons.map((season: any) => {
+                  const isActive = selectedSeason === season.season_number;
+                  return (
+                    <button
+                      key={season.season_number}
+                      onClick={() => setSelectedSeason(season.season_number)}
+                      className={`
+                        w-full flex items-center gap-3 p-2 rounded-lg border border-white/5 transition-all group text-left relative overflow-hidden
+                        ${
                           isActive
-                            ? "opacity-100"
-                            : "opacity-70 group-hover:opacity-100"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <span
-                        className={`text-sm font-bold block ${
-                          isActive
-                            ? "text-white"
-                            : "text-gray-400 group-hover:text-white"
-                        }`}
-                      >
-                        Season {season.season_number}
-                      </span>
-                      <span className="text-[11px] text-gray-600 font-medium">
-                        {season.episode_count} Episodes
-                      </span>
-                      {season.air_date && (
-                        <span className="block text-[10px] text-gray-600 mt-1">
-                          {new Date(season.air_date).getFullYear()}
-                        </span>
+                            ? "bg-white/5 border border-orange-500/30"
+                            : "hover:bg-white/5 border border-transparent"
+                        }
+                      `}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-orange-500 rounded-r-full" />
                       )}
-                    </div>
-                  </button>
-                );
-              })}
+
+                      <div className="relative w-8 h-11 flex-shrink-0 overflow-hidden rounded bg-black shadow-sm">
+                        <Image
+                          src={getImageUrl(season.poster_path, 200)}
+                          alt={`S${season.season_number}`}
+                          fill
+                          className={`object-cover ${
+                            isActive
+                              ? "opacity-100"
+                              : "opacity-70 group-hover:opacity-100"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <span
+                          className={`text-xs font-bold block ${
+                            isActive
+                              ? "text-white"
+                              : "text-gray-400 group-hover:text-white"
+                          }`}
+                        >
+                          Season {season.season_number}
+                        </span>
+                        <span className="text-[10px] text-gray-600 font-medium">
+                          {season.episode_count} Eps
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Main: Episodes */}
-            <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 p-6 bg-[#151821] max-h-[800px]">
+            {/* Main: Episodes (Height adapts to content) */}
+            <div className="pt-2 px-6 pb-6 h-auto border-l border-white/5">
               {viewMode === "grid" ? (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-6">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
                   {filteredEpisodes.map((ep) => {
                     const isSelected = selectedEpisode === ep.episode_number;
                     return (
@@ -456,32 +460,34 @@ export default function TVShowPlayer() {
                           setSelectedEpisode(ep.episode_number);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className={`group relative rounded-xl overflow-hidden cursor-pointer border transition-all ${
+                        className={`group relative rounded-lg overflow-hidden cursor-pointer border transition-all ${
                           isSelected
                             ? "border-orange-500/50 shadow-lg ring-1 ring-orange-500/20"
-                            : "border-white/5 hover:border-white/20"
+                            : "border-white/5 hover:border-white/20 hover:bg-[#1a1d29]"
                         }`}
                       >
+                        {/* Thumbnail */}
                         <div className="relative aspect-video bg-black">
                           <Image
                             src={getImageUrl(ep.still_path, 400)}
-                            alt={ep.name}
+                            alt={`${ep.name}`}
                             fill
-                            className="object-cover opacity-80 group-hover:opacity-100 transition"
+                            className="object-cover opacity-80 group-hover:opacity-100 transition duration-500"
                           />
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition" />
                           {isSelected && (
                             <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
-                              <PlayCircle className="text-white drop-shadow-lg w-12 h-12" />
+                              <PlayCircle className="text-white drop-shadow-lg w-10 h-10" />
                             </div>
                           )}
-                          <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10">
-                            Ep {ep.episode_number}
+                          <span className="absolute top-1.5 left-1.5 bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10">
+                            E{ep.episode_number}
                           </span>
                         </div>
-                        <div className="p-4 bg-[#0f1115]">
+                        {/* Info */}
+                        <div className="p-2.5 bg-[#0f1115]">
                           <h4
-                            className={`text-sm font-bold line-clamp-1 ${
+                            className={`text-xs font-bold line-clamp-1 mb-1 ${
                               isSelected
                                 ? "text-orange-400"
                                 : "text-gray-200 group-hover:text-white"
@@ -489,7 +495,7 @@ export default function TVShowPlayer() {
                           >
                             {ep.name}
                           </h4>
-                          <div className="flex justify-between mt-2 text-[11px] text-gray-500 font-medium">
+                          <div className="flex justify-between items-center text-[10px] text-gray-600 font-medium">
                             <span>{ep.runtime ? `${ep.runtime}m` : "N/A"}</span>
                             <span>
                               {ep.air_date
@@ -497,16 +503,13 @@ export default function TVShowPlayer() {
                                 : ""}
                             </span>
                           </div>
-                          <p className="text-[10px] text-gray-600 mt-2 line-clamp-2 leading-relaxed">
-                            {ep.overview}
-                          </p>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {filteredEpisodes.map((ep) => {
                     const isSelected = selectedEpisode === ep.episode_number;
                     return (
@@ -516,13 +519,14 @@ export default function TVShowPlayer() {
                           setSelectedEpisode(ep.episode_number);
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className={`flex gap-4 p-3 rounded-xl border cursor-pointer transition-all ${
+                        className={`flex gap-3 p-2 rounded-lg border cursor-pointer transition-all ${
                           isSelected
                             ? "bg-white/5 border-orange-500/30"
                             : "hover:bg-white/5 border-white/5"
                         }`}
                       >
-                        <div className="relative w-40 h-24 rounded-lg bg-black flex-shrink-0 overflow-hidden">
+                        {/* Thumbnail */}
+                        <div className="relative w-28 h-16 rounded bg-black flex-shrink-0 overflow-hidden border border-white/5">
                           <Image
                             src={getImageUrl(ep.still_path, 300)}
                             alt={ep.name}
@@ -531,27 +535,28 @@ export default function TVShowPlayer() {
                           />
                           {isSelected && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <PlayCircle className="w-10 h-10 text-white" />
+                              <PlayCircle className="w-6 h-6 text-white" />
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col justify-center py-1">
-                          <div className="flex items-center gap-2 mb-1">
+                        {/* Info */}
+                        <div className="flex flex-col justify-center min-w-0 py-0.5">
+                          <div className="flex items-center gap-2 mb-0.5">
                             <span
-                              className={`text-xs font-bold px-2 py-0.5 rounded ${
+                              className={`text-[10px] font-bold px-1.5 py-px rounded ${
                                 isSelected
                                   ? "bg-orange-500 text-black"
-                                  : "bg-white/10 text-white"
+                                  : "bg-white/10 text-gray-300"
                               }`}
                             >
-                              Episode {ep.episode_number}
+                              E{ep.episode_number}
                             </span>
-                            <span className="text-[11px] text-gray-500 font-medium">
+                            <span className="text-[10px] text-gray-500 font-medium">
                               {ep.air_date}
                             </span>
                           </div>
                           <span
-                            className={`text-base font-bold ${
+                            className={`text-sm font-bold truncate ${
                               isSelected
                                 ? "text-orange-400"
                                 : "text-gray-200 group-hover:text-white"
@@ -559,7 +564,7 @@ export default function TVShowPlayer() {
                           >
                             {ep.name}
                           </span>
-                          <p className="text-xs text-gray-500 line-clamp-2 mt-1.5 leading-relaxed max-w-2xl">
+                          <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">
                             {ep.overview}
                           </p>
                         </div>
