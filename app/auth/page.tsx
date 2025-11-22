@@ -8,27 +8,26 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/supabase";
 import { ensureUserProfile } from "@/src/lib/database";
 
-// --- OPTIMIZED VARIANTS (FASTER) ---
 const pageVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      duration: 0.6, // Background fades in quickly
-      staggerChildren: 0.15, // Items start appearing almost immediately
-      delayChildren: 0.1, // Tiny pause just to let the background settle for a split second
+      duration: 0.6,
+      staggerChildren: 0.15,
+      delayChildren: 0.1,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { y: 20, opacity: 0 }, // Reduced distance (was 30) for snappier feel
+  hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
     transition: {
-      type: "spring",
-      stiffness: 100, // Increased stiffness (was 45) for faster movement
+      type: "spring" as const,
+      stiffness: 100,
       damping: 15,
     },
   },
@@ -153,7 +152,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_40%,rgba(0,0,0,0.55)_100%)]"></div>
       </motion.div>
 
-      {/* Main Container - Animations start almost immediately */}
+      {/* Main Container */}
       <motion.div
         className="relative z-10 w-full h-full max-w-6xl flex items-center justify-center gap-12"
         initial="hidden"

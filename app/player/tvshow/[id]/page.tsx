@@ -30,25 +30,25 @@ const WATCH_TIMER_INTERVAL = 1000;
 // --- Stream Links ---
 const generateStreamLinks = (tmdbId: string, s: number, e: number) => [
   {
-    id: "syntherion",
+    id: "syntheriontv",
     name: "Syntherion",
     quality: "1080p • Subs",
     link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
   },
   {
-    id: "ironlink",
+    id: "ironlinktv",
     name: "IronLink",
     quality: "1080p • Fast",
     link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
   },
   {
-    id: "dormannu",
+    id: "dormannutv",
     name: "Dormannu",
     quality: "4K • Ads",
     link: `${process.env.NEXT_PUBLIC_VIDEASY_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
   },
   {
-    id: "nanovue",
+    id: "nanovuetv",
     name: "Nanovue",
     quality: "1080p • Backup",
     link: `${process.env.NEXT_PUBLIC_YTHD_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
