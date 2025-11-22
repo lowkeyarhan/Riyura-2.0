@@ -4,6 +4,7 @@ import "./globals.css";
 import AuthGate from "@/src/components/AuthGate";
 import { NotificationProvider } from "@/src/lib/NotificationContext";
 import Notification from "@/src/components/Notification";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
           <AuthGate>{children}</AuthGate>
           <Notification />
         </NotificationProvider>
+        <Analytics />
       </body>
     </html>
   );
