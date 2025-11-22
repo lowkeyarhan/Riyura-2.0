@@ -114,6 +114,7 @@ const MetaTag = ({ icon: Icon, text }: { icon: any; text: string }) => (
 
 export default function TVShowPlayer() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const tvShowId = params.id as string;
 
@@ -129,6 +130,7 @@ export default function TVShowPlayer() {
   const watchDuration = useRef(0);
   const watchTimer = useRef<NodeJS.Timeout | null>(null);
   const hasSavedWatch = useRef(false);
+  const hasInitializedFromQuery = useRef(false);
   const servers = generateStreamLinks(
     tvShowId,
     selectedSeason,
@@ -187,6 +189,41 @@ export default function TVShowPlayer() {
     if (tvShowId) fetchEpisodes();
   }, [tvShowId, selectedSeason]);
 
+  // Read query parameters and set initial selections (only once on mount)
+  useEffect(() => {
+    if (hasInitializedFromQuery.current) return;
+
+    const streamParam = searchParams.get("stream");
+    const seasonParam = searchParams.get("season");
+    const episodeParam = searchParams.get("episode");
+
+    // Set season if provided
+    if (seasonParam) {
+      const season = parseInt(seasonParam);
+      if (!isNaN(season) && season > 0) {
+        setSelectedSeason(season);
+      }
+    }
+
+    // Set episode if provided
+    if (episodeParam) {
+      const episode = parseInt(episodeParam);
+      if (!isNaN(episode) && episode > 0) {
+        setSelectedEpisode(episode);
+      }
+    }
+
+    // Set server based on stream_id
+    if (streamParam) {
+      const serverIndex = servers.findIndex((s) => s.id === streamParam);
+      if (serverIndex !== -1) {
+        setActiveServerIndex(serverIndex);
+      }
+    }
+
+    hasInitializedFromQuery.current = true;
+  }, [searchParams, servers]);
+
   useEffect(() => {
     watchTimer.current = setInterval(() => {
       watchDuration.current += 1;
@@ -230,6 +267,10 @@ export default function TVShowPlayer() {
           },
           body: JSON.stringify(watchData),
           keepalive: true,
+        }).then(() => {
+          // Invalidate profile cache so it refreshes on next visit
+          sessionStorage.removeItem("profile_watch_history");
+          sessionStorage.removeItem("profile_stats");
         });
       });
     };

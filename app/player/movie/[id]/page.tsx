@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   Calendar,
   Star,
@@ -116,6 +116,7 @@ const MetaTag = ({ icon: Icon, text }: { icon: any; text: string }) => (
 
 export default function MoviePlayer() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const movieId = params.id as string;
 
@@ -126,6 +127,7 @@ export default function MoviePlayer() {
   const watchDuration = useRef(0);
   const watchTimer = useRef<NodeJS.Timeout | null>(null);
   const hasSavedWatch = useRef(false);
+  const hasInitializedFromQuery = useRef(false);
   const servers = generateStreamLinks(movieId);
 
   // Fetch Logic
@@ -166,6 +168,23 @@ export default function MoviePlayer() {
     if (movieId) fetchMovie();
   }, [movieId]);
 
+  // Read query parameters and set initial stream selection (only once on mount)
+  useEffect(() => {
+    if (hasInitializedFromQuery.current) return;
+
+    const streamParam = searchParams.get("stream");
+
+    // Set server based on stream_id
+    if (streamParam) {
+      const serverIndex = servers.findIndex((s) => s.id === streamParam);
+      if (serverIndex !== -1) {
+        setActiveServerIndex(serverIndex);
+      }
+    }
+
+    hasInitializedFromQuery.current = true;
+  }, [searchParams, servers]);
+
   // Watch Tracking Logic
   useEffect(() => {
     watchTimer.current = setInterval(() => {
@@ -204,6 +223,10 @@ export default function MoviePlayer() {
           },
           body: JSON.stringify(watchData),
           keepalive: true,
+        }).then(() => {
+          // Invalidate profile cache so it refreshes on next visit
+          sessionStorage.removeItem("profile_watch_history");
+          sessionStorage.removeItem("profile_stats");
         });
       });
     };

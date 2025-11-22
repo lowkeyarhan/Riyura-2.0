@@ -376,6 +376,7 @@ export default function ProfilePage() {
             mediaType: item.media_type,
             seasonNumber: item.season_number,
             episodeNumber: item.episode_number,
+            streamId: item.stream_id,
           };
         });
 
@@ -583,11 +584,30 @@ export default function ProfilePage() {
                         <ContinueWatchingCard
                           item={item}
                           onClick={() => {
-                            const path =
-                              item.mediaType === "movie"
-                                ? `/player/movie/${item.tmdbId}`
-                                : `/player/tvshow/${item.tmdbId}`;
-                            router.push(path);
+                            if (item.mediaType === "movie") {
+                              const url = `/player/movie/${item.tmdbId}${
+                                item.streamId ? `?stream=${item.streamId}` : ""
+                              }`;
+                              router.push(url);
+                            } else {
+                              const params = new URLSearchParams();
+                              if (item.streamId)
+                                params.set("stream", item.streamId);
+                              if (item.seasonNumber)
+                                params.set(
+                                  "season",
+                                  item.seasonNumber.toString()
+                                );
+                              if (item.episodeNumber)
+                                params.set(
+                                  "episode",
+                                  item.episodeNumber.toString()
+                                );
+                              const url = `/player/tvshow/${item.tmdbId}${
+                                params.toString() ? `?${params.toString()}` : ""
+                              }`;
+                              router.push(url);
+                            }
                           }}
                         />
                       </motion.div>
