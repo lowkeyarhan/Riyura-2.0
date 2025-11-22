@@ -100,16 +100,21 @@ const SettingsLink = ({
 
 const ContinueWatchingCard = ({
   item,
+  onClick,
 }: {
-  item: (typeof CONTINUE_WATCHING)[0];
+  item: any;
+  onClick: () => void;
 }) => (
-  <div className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20">
+  <div
+    onClick={onClick}
+    className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
+  >
     <div className="relative w-40 aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0 shadow-inner">
       <Image
         src={item.image}
         alt={item.title}
         fill
-        className="object-cover transition-transform duration-500 group-hover:scale-105"
+        className="object-cover transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
         <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
@@ -134,7 +139,9 @@ const ContinueWatchingCard = ({
         <span className="bg-white/10 px-2 py-0.5 rounded text-gray-300">
           {item.type}
         </span>
-        {item.year && <span className="text-gray-600">• {item.year}</span>}
+        {item.type?.toLowerCase() === "movie" && item.year && (
+          <span className="text-gray-600">• {item.year}</span>
+        )}
       </p>
       <div className="flex items-center gap-3 text-xs font-medium text-gray-500">
         <span className="text-gray-300">{item.progress}% completed</span>
@@ -195,12 +202,81 @@ export default function ProfilePage() {
   const { user, loading, firstName, avatarUrl } = useAuth();
   const router = useRouter();
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
+  const [continueWatching, setContinueWatching] = useState<any[]>([]);
+  const [watchHistoryLoading, setWatchHistoryLoading] = useState(true);
+  const [showAllWatching, setShowAllWatching] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/auth");
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    const fetchWatchHistory = async () => {
+      if (!user) return;
+
+      try {
+        setWatchHistoryLoading(true);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) return;
+
+        const response = await fetch("/api/watch-history", {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch watch history");
+
+        const { data } = await response.json();
+
+        // Transform the data to match the UI format
+        const transformed = data.map((item: any) => {
+          const totalLength = item.episode_length || 7200;
+          const progress = Math.min(
+            100,
+            Math.round((item.duration_sec / totalLength) * 100)
+          );
+          const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
+
+          return {
+            id: item.id,
+            tmdbId: item.tmdb_id,
+            title: item.title,
+            progress,
+            image: item.poster_path
+              ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+              : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+            type:
+              item.media_type === "movie"
+                ? "Movie"
+                : item.episode_name
+                ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
+                : `S${item.season_number} E${item.episode_number}`,
+            year: item.release_date
+              ? new Date(item.release_date).getFullYear()
+              : null,
+            remaining: `${Math.floor(remainingSeconds / 60)}m remaining`,
+            mediaType: item.media_type,
+            seasonNumber: item.season_number,
+            episodeNumber: item.episode_number,
+          };
+        });
+
+        setContinueWatching(transformed);
+      } catch (error) {
+        console.error("Error fetching watch history:", error);
+      } finally {
+        setWatchHistoryLoading(false);
+      }
+    };
+
+    fetchWatchHistory();
+  }, [user]);
 
   const handleSignOut = async () => {
     setIsSignOutLoading(true);
@@ -318,11 +394,46 @@ export default function ProfilePage() {
                 >
                   Continue Watching
                 </h3>
+                {!watchHistoryLoading && continueWatching.length > 2 && (
+                  <button
+                    onClick={() => setShowAllWatching(!showAllWatching)}
+                    className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                  >
+                    {showAllWatching ? "Show Less" : "Show More"}
+                  </button>
+                )}
               </div>
               <div className="flex flex-col gap-4">
-                {CONTINUE_WATCHING.map((item) => (
-                  <ContinueWatchingCard key={item.id} item={item} />
-                ))}
+                {watchHistoryLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  </div>
+                ) : continueWatching.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>
+                      No watch history yet. Start watching to see your progress
+                      here!
+                    </p>
+                  </div>
+                ) : (
+                  (showAllWatching
+                    ? continueWatching
+                    : continueWatching.slice(0, 2)
+                  ).map((item) => (
+                    <ContinueWatchingCard
+                      key={item.id}
+                      item={item}
+                      onClick={() => {
+                        const path =
+                          item.mediaType === "movie"
+                            ? `/player/movie/${item.tmdbId}`
+                            : `/player/tvshow/${item.tmdbId}`;
+                        router.push(path);
+                      }}
+                    />
+                  ))
+                )}
               </div>
             </section>
 

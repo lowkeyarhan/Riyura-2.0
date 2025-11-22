@@ -191,6 +191,7 @@ export default function MoviePlayer() {
         poster_path: movie.poster_path,
         release_date: movie.release_date,
         duration_sec: watchDuration.current,
+        episode_length: movie.runtime ? movie.runtime * 60 : null,
       };
 
       supabase.auth.getSession().then(({ data: { session } }) => {

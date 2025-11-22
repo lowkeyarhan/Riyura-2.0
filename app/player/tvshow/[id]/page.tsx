@@ -201,10 +201,13 @@ export default function TVShowPlayer() {
       )
         return;
       hasSavedWatch.current = true;
+      const currentEpisode = episodes.find(
+        (ep) => ep.episode_number === selectedEpisode
+      );
       const watchData = {
         user_id: user.id,
         tmdb_id: parseInt(tvShowId),
-        title: `${tvShow.name}: S${selectedSeason}E${selectedEpisode}`,
+        title: `${tvShow.name}`,
         media_type: "tv",
         stream_id: servers[activeServerIndex].id,
         poster_path: tvShow.poster_path,
@@ -212,6 +215,10 @@ export default function TVShowPlayer() {
         duration_sec: watchDuration.current,
         season_number: selectedSeason,
         episode_number: selectedEpisode,
+        episode_name: currentEpisode?.name || null,
+        episode_length: currentEpisode?.runtime
+          ? currentEpisode.runtime * 60
+          : null,
       };
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
@@ -226,7 +233,16 @@ export default function TVShowPlayer() {
         });
       });
     };
-  }, [user, tvShow, selectedSeason, selectedEpisode, activeServerIndex]);
+  }, [
+    user,
+    tvShow,
+    selectedSeason,
+    selectedEpisode,
+    activeServerIndex,
+    episodes,
+    tvShowId,
+    servers,
+  ]);
 
   const validSeasons = (tvShow?.seasons || []).filter(
     (s: any) => s.season_number !== 0 && s.episode_count > 0

@@ -12,6 +12,49 @@ const VALID_STREAMS = new Set([
   "nanovuetv",
 ]);
 
+export async function GET(req: Request) {
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Missing or Invalid Token" },
+        { status: 401 }
+      );
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data, error } = await supabase
+      .from("watch_history")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("watched_at", { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, data }, { status: 200 });
+  } catch (err: any) {
+    console.error("Error fetching watch history:", err.message);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("Authorization");
@@ -42,6 +85,8 @@ export async function POST(req: Request) {
       release_date,
       season_number,
       episode_number,
+      episode_name,
+      episode_length,
       duration_sec = 0,
     } = body;
 
@@ -102,6 +147,8 @@ export async function POST(req: Request) {
       release_date,
       season_number,
       episode_number,
+      episode_name,
+      episode_length,
       duration_sec: finalDuration,
       watched_at: new Date().toISOString(),
     };

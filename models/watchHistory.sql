@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS watch_history (
   duration_sec INT,
   season_number INT,
   episode_number INT,
+  episode_name TEXT,
+  episode_length INT,
   watched_at TIMESTAMPTZ DEFAULT NOW()
 );
 
