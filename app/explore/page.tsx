@@ -137,7 +137,7 @@ export default function ExplorePage() {
   const [mediaType, setMediaType] = useState("all");
   const [items, setItems] = useState<MediaItem[]>([]);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [showTopBtn, setShowTopBtn] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);

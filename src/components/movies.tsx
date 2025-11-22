@@ -21,6 +21,7 @@ interface MoviesProps {
   currentPage: number;
   itemsPerPage: number;
   onTotalItemsChange: (total: number) => void;
+  initialMovies?: Movie[];
 }
 
 // --- Constants ---
@@ -119,13 +120,19 @@ export default function Movies({
   currentPage,
   itemsPerPage,
   onTotalItemsChange,
+  initialMovies = [],
 }: MoviesProps) {
   const router = useRouter();
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [movies, setMovies] = useState<Movie[]>(initialMovies);
+  const [loading, setLoading] = useState(initialMovies.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip fetching if we have initial data
+    if (initialMovies.length > 0) {
+      return;
+    }
+
     const fetchMovies = async () => {
       try {
         setLoading(true);
@@ -158,7 +165,7 @@ export default function Movies({
     };
 
     fetchMovies();
-  }, []);
+  }, [initialMovies]);
 
   useEffect(() => {
     onTotalItemsChange(movies.length);

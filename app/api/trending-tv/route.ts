@@ -36,7 +36,7 @@ export async function GET() {
     // Make the request to TMDB
     const response = await fetch(tmdbUrl, {
       headers: { accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 3600 },
     });
 
     if (!response.ok) {

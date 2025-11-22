@@ -41,13 +41,22 @@ const GENRE_MAP: { [key: number]: string } = {
   37: "Western",
 };
 
-export default function Banner() {
+interface BannerProps {
+  initialMovies?: Movie[];
+}
+
+export default function Banner({ initialMovies = [] }: BannerProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [movies, setMovies] = useState<Movie[]>(initialMovies);
+  const [loading, setLoading] = useState(initialMovies.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip fetching if we have initial data
+    if (initialMovies.length > 0) {
+      return;
+    }
+
     const fetchMovies = async () => {
       try {
         setLoading(true);
@@ -65,7 +74,7 @@ export default function Banner() {
           }
         }
 
-        const response = await fetch("/api/trending", { cache: "no-store" });
+        const response = await fetch("/api/trending");
         if (!response.ok) throw new Error("Failed to load movies");
 
         const data = await response.json();
@@ -82,7 +91,7 @@ export default function Banner() {
     };
 
     fetchMovies();
-  }, []);
+  }, [initialMovies]);
 
   const currentMovie = movies[currentSlide];
 

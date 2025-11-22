@@ -20,6 +20,7 @@ interface TVShowsProps {
   currentPage: number;
   itemsPerPage: number;
   onTotalItemsChange: (total: number) => void;
+  initialTVShows?: TVShow[];
 }
 
 // --- Constants ---
@@ -120,13 +121,19 @@ export default function TVShows({
   currentPage,
   itemsPerPage,
   onTotalItemsChange,
+  initialTVShows = [],
 }: TVShowsProps) {
   const router = useRouter();
-  const [tvShows, setTVShows] = useState<TVShow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tvShows, setTVShows] = useState<TVShow[]>(initialTVShows);
+  const [loading, setLoading] = useState(initialTVShows.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip fetching if we have initial data
+    if (initialTVShows.length > 0) {
+      return;
+    }
+
     const fetchTVShows = async () => {
       try {
         setLoading(true);
@@ -159,7 +166,7 @@ export default function TVShows({
     };
 
     fetchTVShows();
-  }, []);
+  }, [initialTVShows]);
 
   useEffect(() => {
     onTotalItemsChange(tvShows.length);

@@ -22,6 +22,7 @@ interface AnimeProps {
   currentPage: number;
   itemsPerPage: number;
   onTotalItemsChange: (total: number) => void;
+  initialAnime?: Anime[];
 }
 
 // --- Constants ---
@@ -124,13 +125,19 @@ export default function Anime({
   currentPage,
   itemsPerPage,
   onTotalItemsChange,
+  initialAnime = [],
 }: AnimeProps) {
   const router = useRouter();
-  const [animeList, setAnimeList] = useState<Anime[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [animeList, setAnimeList] = useState<Anime[]>(initialAnime);
+  const [loading, setLoading] = useState(initialAnime.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip fetching if we have initial data
+    if (initialAnime.length > 0) {
+      return;
+    }
+
     const fetchAnime = async () => {
       try {
         setLoading(true);

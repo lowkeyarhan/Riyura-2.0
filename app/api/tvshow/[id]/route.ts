@@ -25,13 +25,16 @@ export async function GET(
     const [detailsResponse, creditsResponse, similarResponse] =
       await Promise.all([
         fetch(
-          `https://api.themoviedb.org/3/tv/${tvShowId}?api_key=${apiKey}&language=en-US`
+          `https://api.themoviedb.org/3/tv/${tvShowId}?api_key=${apiKey}&language=en-US`,
+          { next: { revalidate: 3600 } }
         ),
         fetch(
-          `https://api.themoviedb.org/3/tv/${tvShowId}/credits?api_key=${apiKey}&language=en-US`
+          `https://api.themoviedb.org/3/tv/${tvShowId}/credits?api_key=${apiKey}&language=en-US`,
+          { next: { revalidate: 3600 } }
         ),
         fetch(
-          `https://api.themoviedb.org/3/tv/${tvShowId}/similar?api_key=${apiKey}&language=en-US&page=1`
+          `https://api.themoviedb.org/3/tv/${tvShowId}/similar?api_key=${apiKey}&language=en-US&page=1`,
+          { next: { revalidate: 3600 } }
         ),
       ]);
 

@@ -40,14 +40,14 @@ export async function GET() {
         `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
         {
           headers: { accept: "application/json" },
-          cache: "no-store",
+          next: { revalidate: 3600 },
         }
       ),
       fetch(
         `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&sort_by=popularity.desc&vote_count.gte=50&with_genres=16&with_original_language=ja&page=1`,
         {
           headers: { accept: "application/json" },
-          cache: "no-store",
+          next: { revalidate: 3600 },
         }
       ),
     ]);

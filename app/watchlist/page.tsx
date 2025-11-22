@@ -246,10 +246,12 @@ export default function WatchlistPage() {
   }, [user, authLoading, addNotification]);
 
   // Filter Logic
-  const visible = useMemo(
-    () => (filter === "all" ? items : items.filter((i) => i.type === filter)),
-    [items, filter]
-  );
+  const visible = useMemo(() => {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    return filter === "all" ? items : items.filter((i) => i.type === filter);
+  }, [items, filter]);
 
   // Remove Logic
   const removeItem = async (
@@ -290,8 +292,8 @@ export default function WatchlistPage() {
       {/* --- BACKGROUND LAYERS --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-black" />
-        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155e75] blur-[130px] opacity-40" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a3412] blur-[130px] opacity-30 mix-blend-screen" />
+        <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
         <div className="absolute inset-0 opacity-[0.06] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-150 mix-blend-overlay" />
       </div>
@@ -333,12 +335,12 @@ export default function WatchlistPage() {
         {/* Content Grid */}
         {loading ? (
           // Skeletons inside Results Container
-          <div className="bg-[#151821] border border-white/5 rounded-3xl p-6 md:p-8 shadow-lg">
+          <div className="bg-[#3c3c3c17] border border-white/5 rounded-3xl p-6 md:p-8 shadow-lg">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl bg-[#0f1115] border border-white/5 aspect-[2/3] relative overflow-hidden"
+                  className="rounded-2xl bg-[#0f111562] border border-white/5 aspect-[2/3] relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20 animate-pulse" />
                   <div className="absolute bottom-4 left-4 right-4 space-y-2">
@@ -351,7 +353,7 @@ export default function WatchlistPage() {
           </div>
         ) : visible.length === 0 ? (
           // Empty State
-          <div className="flex flex-col items-center justify-center py-32 text-center border border-white/5 rounded-3xl bg-[#1518215f] shadow-lg">
+          <div className="flex flex-col items-center justify-center py-32 text-center border border-white/5 rounded-3xl bg-[#3c3c3c17] shadow-lg">
             <div className="w-24 h-24 bg-[#0f111564] rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-inner">
               <LayoutGrid className="w-10 h-10 text-gray-500" />
             </div>
