@@ -50,7 +50,7 @@ const CONTINUE_WATCHING = [
 const SETTINGS_LINKS = [
   { label: "Account Settings", icon: User, desc: "Personal info, Email" },
   { label: "Subscription Plan", icon: CreditCard, desc: "Manage Premium" },
-  { label: "Gemini API Key", icon: Key, desc: "Manage AI Integration" }, // Added Gemini Key
+  { label: "Gemini API Key", icon: Key, desc: "Manage AI Integration" },
   { label: "Privacy & Security", icon: Shield, desc: "Password, 2FA" },
 ];
 
