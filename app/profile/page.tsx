@@ -5,6 +5,7 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/src/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut,
   User,
@@ -17,34 +18,14 @@ import {
   CreditCard,
   Play,
   Star,
-  Key, // Imported Key icon
+  Key,
+  Sparkles,
 } from "lucide-react";
 
-// --- Mock Data ---
-const STATS = [
-  { label: "Movies", value: "124", icon: Film, color: "text-cyan-400" },
-  { label: "Series", value: "42", icon: Tv, color: "text-orange-400" },
-  { label: "Hours", value: "386", icon: Clock, color: "text-purple-400" },
-];
-
-const CONTINUE_WATCHING = [
-  {
-    id: 1,
-    title: "Dune: Part Two",
-    progress: 75,
-    image: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
-    type: "Movie",
-    year: 2024,
-    remaining: "24m remaining",
-  },
-  {
-    id: 2,
-    title: "Stranger Things",
-    progress: 30,
-    image: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
-    type: "S4 E3: The Monster and the Superhero",
-    remaining: "32m remaining",
-  },
+const INITIAL_STATS = [
+  { label: "Movies", value: "0", icon: Film, color: "text-cyan-400" },
+  { label: "Series", value: "0", icon: Tv, color: "text-orange-400" },
+  { label: "Hours", value: "0", icon: Clock, color: "text-purple-400" },
 ];
 
 const SETTINGS_LINKS = [
@@ -54,9 +35,7 @@ const SETTINGS_LINKS = [
   { label: "Privacy & Security", icon: Shield, desc: "Password, 2FA" },
 ];
 
-// --- Sub-Components ---
-
-const StatBadge = ({ stat }: { stat: (typeof STATS)[0] }) => (
+const StatBadge = ({ stat }: { stat: (typeof INITIAL_STATS)[0] }) => (
   <div className="flex flex-col items-center p-4 rounded-2xl bg-[#29292930] border border-white/5 flex-1 group hover:border-white/10 hover:bg-[#29292950] transition-colors">
     <span className="text-xl font-bold text-white leading-none mb-1">
       {stat.value}
@@ -105,7 +84,27 @@ const ContinueWatchingCard = ({
   item: any;
   onClick: () => void;
 }) => (
-  <div
+  <motion.div
+    layout
+    initial={{ opacity: 0, y: 0, scale: 0.95 }}
+    animate={{
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1],
+      },
+    }}
+    exit={{
+      opacity: 0,
+      y: 0,
+      scale: 0.95,
+      transition: {
+        duration: 0.6,
+        ease: [0.22, 1, 0.36, 1],
+      },
+    }}
     onClick={onClick}
     className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
   >
@@ -152,7 +151,7 @@ const ContinueWatchingCard = ({
     <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-[#0f1115] border border-white/5 text-gray-500 group-hover:text-white group-hover:border-white/20 transition-all">
       <Play size={16} fill="currentColor" />
     </div>
-  </div>
+  </motion.div>
 );
 
 const WatchlistCard = () => (
@@ -179,20 +178,95 @@ const WatchlistCard = () => (
 );
 
 const ProfileSkeleton = () => (
-  <div className="animate-pulse grid grid-cols-1 lg:grid-cols-12 gap-8 w-full pt-32 pb-16 px-8 md:px-16 lg:px-20">
-    <div className="lg:col-span-4 space-y-6">
-      <div className="h-[400px] bg-[#1518215f] border border-white/5 rounded-3xl" />
-      <div className="h-40 rounded-3xl bg-[#151821] border border-white/5" />
-    </div>
-    <div className="lg:col-span-8 space-y-8">
-      <div className="h-10 w-1/3 bg-white/10 rounded-lg mb-4" />
-      <div className="h-32 bg-[#1518215f] border border-white/5 rounded-2xl" />
-      <div className="h-32 bg-[#1518215f] border border-white/5 rounded-2xl" />
-      <div className="grid grid-cols-4 gap-4 mt-8">
-        <div className="aspect-[2/3] rounded-xl bg-[#1518215f]" />
-        <div className="aspect-[2/3] rounded-xl bg-[#1518215f]" />
-        <div className="aspect-[2/3] rounded-xl bg-[#1518215f]" />
-        <div className="aspect-[2/3] rounded-xl bg-[#151821]" />
+  <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
+    <div className="relative z-10 w-full h-full pt-32 pb-16 px-8 md:px-16 lg:px-16">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
+        {/* Left Column Skeleton */}
+        <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-[calc(100vh-8rem)]">
+          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-6 relative overflow-hidden shadow-2xl animate-pulse">
+            <div className="flex flex-col items-center text-center mt-4">
+              <div className="w-28 h-28 mb-5 rounded-full bg-white/10" />
+              <div className="h-8 w-32 bg-white/10 rounded-lg mb-2" />
+              <div className="h-4 w-48 bg-white/5 rounded-lg mb-8" />
+              <div className="flex gap-3 w-full mb-8">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 flex-1 rounded-2xl bg-white/5" />
+                ))}
+              </div>
+              <div className="w-full h-12 rounded-xl bg-white/5" />
+            </div>
+          </div>
+          <div className="space-y-3 mt-6 mb-2">
+            <div className="h-4 w-24 bg-white/5 rounded mb-4" />
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-full h-20 bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column Skeleton */}
+        <div className="lg:col-span-8 space-y-10 overflow-hidden pr-2">
+          <div className="flex flex-col items-start gap-3 animate-pulse">
+            <div className="h-12 w-64 bg-white/10 rounded-xl" />
+            <div className="h-5 w-48 bg-white/5 rounded-lg" />
+          </div>
+
+          <div className="space-y-5">
+            <div className="h-8 w-40 bg-white/10 rounded-lg animate-pulse" />
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-full h-40 bg-[#1518215f] border border-white/5 rounded-2xl animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div className="flex justify-between items-center animate-pulse">
+              <div className="h-8 w-32 bg-white/10 rounded-lg" />
+              <div className="h-5 w-20 bg-white/5 rounded-lg" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Recommended Skeleton */}
+          <div className="space-y-5">
+            <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Recommended Skeleton */}
+          <div className="space-y-5">
+            <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -205,6 +279,8 @@ export default function ProfilePage() {
   const [continueWatching, setContinueWatching] = useState<any[]>([]);
   const [watchHistoryLoading, setWatchHistoryLoading] = useState(true);
   const [showAllWatching, setShowAllWatching] = useState(false);
+  const [showAllRecommended, setShowAllRecommended] = useState(false);
+  const [stats, setStats] = useState(INITIAL_STATS);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -218,6 +294,18 @@ export default function ProfilePage() {
 
       try {
         setWatchHistoryLoading(true);
+
+        // Check session storage first
+        const cachedData = sessionStorage.getItem("profile_watch_history");
+        const cachedStats = sessionStorage.getItem("profile_stats");
+
+        if (cachedData && cachedStats) {
+          setContinueWatching(JSON.parse(cachedData));
+          setStats(JSON.parse(cachedStats));
+          setWatchHistoryLoading(false);
+          return;
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -233,6 +321,30 @@ export default function ProfilePage() {
         if (!response.ok) throw new Error("Failed to fetch watch history");
 
         const { data } = await response.json();
+
+        // Calculate Stats
+        const moviesCount = data.filter(
+          (i: any) => i.media_type === "movie"
+        ).length;
+        const seriesCount = new Set(
+          data
+            .filter((i: any) => i.media_type !== "movie")
+            .map((i: any) => i.tmdb_id)
+        ).size;
+        const totalSeconds = data.reduce(
+          (acc: number, item: any) => acc + (item.duration_sec || 0),
+          0
+        );
+        const hoursCount = Math.round(totalSeconds / 3600);
+
+        const newStats = [
+          { ...INITIAL_STATS[0], value: moviesCount.toString() },
+          { ...INITIAL_STATS[1], value: seriesCount.toString() },
+          { ...INITIAL_STATS[2], value: hoursCount.toString() },
+        ];
+
+        setStats(newStats);
+        sessionStorage.setItem("profile_stats", JSON.stringify(newStats));
 
         // Transform the data to match the UI format
         const transformed = data.map((item: any) => {
@@ -268,6 +380,10 @@ export default function ProfilePage() {
         });
 
         setContinueWatching(transformed);
+        sessionStorage.setItem(
+          "profile_watch_history",
+          JSON.stringify(transformed)
+        );
       } catch (error) {
         console.error("Error fetching watch history:", error);
       } finally {
@@ -281,6 +397,8 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     setIsSignOutLoading(true);
     await supabase.auth.signOut();
+    sessionStorage.removeItem("profile_watch_history");
+    sessionStorage.removeItem("profile_stats");
     router.push("/landing");
   };
 
@@ -289,7 +407,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-black text-white font-sans pt-32 pb-16 px-8 md:px-16 lg:px-16">
+    <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
       {/* --- BACKGROUND LAYERS --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-black" />
@@ -299,8 +417,8 @@ export default function ProfilePage() {
       </div>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="relative z-10 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="relative z-10 w-full h-full pt-32 pb-16 px-8 md:px-16 lg:px-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
           {/* --- LEFT COLUMN: Identity & Navigation (4 cols) --- */}
           <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-fit">
             {/* Identity Card */}
@@ -337,7 +455,7 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-400 mb-8">{user.email}</p>
 
                 <div className="flex gap-3 w-full mb-8">
-                  {STATS.map((stat) => (
+                  {stats.map((stat) => (
                     <StatBadge key={stat.label} stat={stat} />
                   ))}
                 </div>
@@ -373,7 +491,7 @@ export default function ProfilePage() {
           </div>
 
           {/* --- RIGHT COLUMN: Content Feed (8 cols) --- */}
-          <div className="lg:col-span-8 space-y-10">
+          <div className="lg:col-span-8 space-y-10 overflow-y-auto max-h-[calc(100vh-8rem)] scrollbar-hide">
             {/* Header Section */}
             <div className="flex flex-col items-start gap-1">
               <h1
@@ -403,7 +521,7 @@ export default function ProfilePage() {
                   </button>
                 )}
               </div>
-              <div className="flex flex-col gap-4">
+              <motion.div layout className="flex flex-col">
                 {watchHistoryLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -417,24 +535,66 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 ) : (
-                  (showAllWatching
-                    ? continueWatching
-                    : continueWatching.slice(0, 2)
-                  ).map((item) => (
-                    <ContinueWatchingCard
-                      key={item.id}
-                      item={item}
-                      onClick={() => {
-                        const path =
-                          item.mediaType === "movie"
-                            ? `/player/movie/${item.tmdbId}`
-                            : `/player/tvshow/${item.tmdbId}`;
-                        router.push(path);
-                      }}
-                    />
-                  ))
+                  <AnimatePresence initial={false}>
+                    {(showAllWatching
+                      ? continueWatching
+                      : continueWatching.slice(0, 2)
+                    ).map((item, index) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{
+                          opacity: index < 2 ? 1 : 0,
+                          y: index < 2 ? 0 : -20,
+                          scale: index < 2 ? 1 : 0.95,
+                          zIndex: index < 2 ? 10 : 0,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          scale: 1,
+                          zIndex: 10,
+                          marginBottom: 16,
+                          transition: {
+                            duration: 0.5,
+                            ease: [0.22, 1, 0.36, 1],
+                            delay: index > 1 ? (index - 2) * 0.08 : 0,
+                          },
+                        }}
+                        exit={{
+                          opacity: 0,
+                          y: -20,
+                          scale: 0.95,
+                          height: 0,
+                          marginBottom: 0,
+                          zIndex: 0,
+                          transition: {
+                            duration: 0.6,
+                            ease: [0.22, 1, 0.36, 1],
+                          },
+                        }}
+                        transition={{
+                          layout: {
+                            duration: 0.5,
+                            ease: [0.22, 1, 0.36, 1],
+                          },
+                        }}
+                      >
+                        <ContinueWatchingCard
+                          item={item}
+                          onClick={() => {
+                            const path =
+                              item.mediaType === "movie"
+                                ? `/player/movie/${item.tmdbId}`
+                                : `/player/tvshow/${item.tmdbId}`;
+                            router.push(path);
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 )}
-              </div>
+              </motion.div>
             </section>
 
             {/* Watchlist Preview Section */}
@@ -459,6 +619,41 @@ export default function ProfilePage() {
                   <WatchlistCard key={i} />
                 ))}
               </div>
+            </section>
+
+            {/* Recommended Section */}
+            <section>
+              <div className="flex items-center justify-between mb-5">
+                <h3
+                  className="text-xl font-bold text-white flex items-center gap-3"
+                  style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
+                >
+                  Recommended for You
+                </h3>
+                <button
+                  onClick={() => setShowAllRecommended(!showAllRecommended)}
+                  className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                >
+                  {showAllRecommended ? "Show Less" : "Show More"}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 lg:pb-16">
+                  {Array.from({ length: showAllRecommended ? 8 : 4 }).map(
+                    (_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { duration: 0.3 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                      >
+                        <WatchlistCard />
+                      </motion.div>
+                    )
+                  )}
+                </div>
+              </AnimatePresence>
             </section>
           </div>
         </div>
