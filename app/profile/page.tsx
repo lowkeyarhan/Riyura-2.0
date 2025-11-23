@@ -30,6 +30,7 @@ const CACHE_KEYS = {
   WATCH_HISTORY: "profile_watch_history",
   WATCHLIST: "profile_watchlist",
   STATS: "profile_stats",
+  API_KEY: "profile_api_key",
 };
 
 const INITIAL_STATS = [
@@ -50,7 +51,7 @@ const SETTINGS_LINKS = [
   { label: "Privacy & Security", icon: Shield, desc: "Password, 2FA" },
 ];
 
-// Cache Utilities
+// Cache Utilities (using localStorage for persistence across sessions)
 const getCacheKey = (userId: string, type: string) => `${type}_${userId}`;
 
 const isCacheValid = (timestamp: number) => {
@@ -59,33 +60,52 @@ const isCacheValid = (timestamp: number) => {
 
 const getCachedData = (cacheKey: string) => {
   try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if (!cached) return null;
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) {
+      console.log(`📦 [Cache] No cached data for: ${cacheKey}`);
+      return null;
+    }
 
     const { data, timestamp } = JSON.parse(cached);
     if (!isCacheValid(timestamp)) {
-      sessionStorage.removeItem(cacheKey);
+      console.log(`⏰ [Cache] Expired cache for: ${cacheKey}`);
+      localStorage.removeItem(cacheKey);
       return null;
     }
+
+    console.log(`✅ [Cache] Using cached data for: ${cacheKey}`);
     return data;
   } catch (error) {
-    sessionStorage.removeItem(cacheKey);
+    console.warn(`⚠️  [Cache] Error reading cache for: ${cacheKey}`, error);
+    localStorage.removeItem(cacheKey);
     return null;
   }
 };
 
 const setCachedData = (cacheKey: string, data: any) => {
   try {
-    sessionStorage.setItem(
+    localStorage.setItem(
       cacheKey,
       JSON.stringify({
         data,
         timestamp: Date.now(),
       })
     );
+    console.log(`💾 [Cache] Saved to cache: ${cacheKey}`);
   } catch (error) {
-    // silent fail
+    console.warn(`⚠️  [Cache] Error saving to cache: ${cacheKey}`, error);
   }
+};
+
+const clearUserCache = (userId: string) => {
+  const keys = Object.values(CACHE_KEYS).map((type) =>
+    getCacheKey(userId, type)
+  );
+  keys.forEach((key) => {
+    localStorage.removeItem(key);
+    console.log(`🗑️  [Cache] Cleared: ${key}`);
+  });
+  console.log(`🧹 [Cache] All user cache cleared for: ${userId}`);
 };
 
 const formatWatchHistory = (data: any[]) => {
@@ -156,7 +176,7 @@ const StatBadge = ({ stat }: { stat: (typeof INITIAL_STATS)[0] }) => (
 const SettingsLink = ({ item }: { item: (typeof SETTINGS_LINKS)[0] }) => (
   <div className="w-full">
     <div className="w-full bg-[#1518215f] border border-white/5 rounded-xl hover:bg-[#15182180] hover:border-white/20 transition-all group text-left shadow-sm p-4 flex flex-col min-h-[80px] justify-center">
-      <div className="flex items-start gap-4 w-full">
+      <div className="flex items-center gap-4 w-full">
         <div className="p-2.5 rounded-lg text-gray-400 group-hover:text-white group-hover:bg-white/10 transition-all flex-shrink-0">
           <item.icon size={18} />
         </div>
@@ -165,18 +185,103 @@ const SettingsLink = ({ item }: { item: (typeof SETTINGS_LINKS)[0] }) => (
             {item.label}
           </h4>
           <p className="text-xs text-gray-500">{item.desc}</p>
-          {item.hasInput && (
-            <input
-              type="text"
-              placeholder="Enter Gemini API Key"
-              className="w-full rounded-lg bg-transparent border border-white/5 text-white px-3 py-2 mt-4 focus:outline-none transition-colors text-sm"
-            />
-          )}
         </div>
       </div>
     </div>
   </div>
 );
+
+// Gemini API Key Input Component (with debouncing)
+const GeminiApiKeyInput = ({
+  value,
+  onChange,
+  onSave,
+  onDelete,
+  isLoading,
+  isSaving,
+  keyPreview,
+  hasKey,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSave: (key: string) => void;
+  onDelete: () => void;
+  isLoading: boolean;
+  isSaving: boolean;
+  keyPreview: string | null;
+  hasKey: boolean;
+}) => {
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    onChange(newValue);
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer (3 seconds)
+    debounceTimerRef.current = setTimeout(() => {
+      if (newValue.trim() === "" && hasKey) {
+        // Empty input with existing key = delete
+        onDelete();
+      } else if (newValue.trim() !== "") {
+        // Non-empty input = save
+        onSave(newValue.trim());
+      }
+    }, 3000);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="w-full">
+      <div className="w-full bg-[#1518215f] border border-white/5 rounded-xl hover:bg-[#15182180] hover:border-white/20 transition-all group text-left shadow-sm p-4 flex flex-col min-h-[80px] justify-center">
+        <div className="flex items-start gap-4 w-full">
+          <div className="p-2.5 rounded-lg text-gray-400 group-hover:text-white group-hover:bg-white/10 transition-all flex-shrink-0">
+            <Key size={18} />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-gray-200 group-hover:text-white transition-colors">
+              Gemini API Key
+            </h4>
+            <p className="text-xs text-gray-500">Manage AI Integration</p>
+            <div className="relative mt-4">
+              <input
+                type="text"
+                value={value}
+                onChange={handleInputChange}
+                placeholder={isLoading ? "Loading..." : "Enter Gemini API Key"}
+                disabled={isLoading || isSaving}
+                className="w-full rounded-lg bg-transparent border border-white/5 text-white px-3 py-2.5 pr-12 focus:outline-none focus:border-white/20 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {isSaving && (
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                )}
+                {hasKey && !isSaving && (
+                  <div className="text-green-500 text-xs font-bold">✓</div>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-600 mt-2">
+              Changes auto-save after 3 seconds. Clear input to delete key.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ContinueWatchingCard = ({
   item,
@@ -406,6 +511,14 @@ export default function ProfilePage() {
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
   const [dataInitialized, setDataInitialized] = useState(false);
   const fetchingRef = useRef(false);
+  const apiKeyFetchingRef = useRef(false);
+
+  // Gemini API Key state
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [apiKeyPreview, setApiKeyPreview] = useState<string | null>(null);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  const [isLoadingApiKey, setIsLoadingApiKey] = useState(true);
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
 
   // Auth Guard
   useEffect(() => {
@@ -485,27 +598,179 @@ export default function ProfilePage() {
     fetchAllData();
   }, [user]);
 
+  // Fetch API Key Status on mount
+  useEffect(() => {
+    if (!user || apiKeyFetchingRef.current) return;
+
+    const fetchApiKeyStatus = async () => {
+      if (apiKeyFetchingRef.current) return;
+      apiKeyFetchingRef.current = true;
+
+      try {
+        setIsLoadingApiKey(true);
+        const apiKeyCache = getCacheKey(user.id, CACHE_KEYS.API_KEY);
+        const cached = getCachedData(apiKeyCache);
+
+        if (cached) {
+          // Use cached data
+          setHasApiKey(cached.hasKey);
+          setApiKeyPreview(cached.keyPreview);
+          if (cached.keyPreview) {
+            setApiKeyInput(cached.keyPreview);
+          }
+          setIsLoadingApiKey(false);
+          apiKeyFetchingRef.current = false;
+          return;
+        }
+
+        // Fetch from API
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session) {
+          const res = await fetch("/api/gemini", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            setHasApiKey(data.hasKey);
+            setApiKeyPreview(data.keyPreview);
+            if (data.keyPreview) {
+              setApiKeyInput(data.keyPreview);
+            }
+
+            // Cache the result
+            setCachedData(apiKeyCache, {
+              hasKey: data.hasKey,
+              keyPreview: data.keyPreview,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch API key status:", error);
+      } finally {
+        setIsLoadingApiKey(false);
+        apiKeyFetchingRef.current = false;
+      }
+    };
+
+    fetchApiKeyStatus();
+  }, [user]);
+
+  // Handler: Save API Key
+  const handleSaveApiKey = async (key: string) => {
+    if (!user) return;
+
+    try {
+      setIsSavingApiKey(true);
+      console.log(
+        `🔐 [API Key] Attempting to save API key for user: ${user.id}`
+      );
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        const res = await fetch("/api/gemini", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ apiKey: key }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setHasApiKey(true);
+          setApiKeyPreview(data.keyPreview);
+          setApiKeyInput(data.keyPreview);
+
+          // Update cache
+          const apiKeyCache = getCacheKey(user.id, CACHE_KEYS.API_KEY);
+          setCachedData(apiKeyCache, {
+            hasKey: true,
+            keyPreview: data.keyPreview,
+          });
+
+          console.log(`✅ [API Key] API key saved successfully`);
+        } else {
+          const error = await res.json();
+          console.error(`❌ [API Key] Failed to save:`, error.error);
+          alert(`Failed to save API key: ${error.error}`);
+        }
+      }
+    } catch (error) {
+      console.error(`🔥 [API Key] Error saving API key:`, error);
+      alert("Failed to save API key. Please try again.");
+    } finally {
+      setIsSavingApiKey(false);
+    }
+  };
+
+  // Handler: Delete API Key
+  const handleDeleteApiKey = async () => {
+    if (!user) return;
+
+    try {
+      setIsSavingApiKey(true);
+      console.log(
+        `🗑️  [API Key] Attempting to delete API key for user: ${user.id}`
+      );
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        const res = await fetch("/api/gemini", {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (res.ok) {
+          setHasApiKey(false);
+          setApiKeyPreview(null);
+          setApiKeyInput("");
+
+          // Clear cache
+          const apiKeyCache = getCacheKey(user.id, CACHE_KEYS.API_KEY);
+          localStorage.removeItem(apiKeyCache);
+          console.log(`✅ [API Key] API key deleted successfully`);
+        } else {
+          const error = await res.json();
+          console.error(`❌ [API Key] Failed to delete:`, error.error);
+        }
+      }
+    } catch (error) {
+      console.error(`🔥 [API Key] Error deleting API key:`, error);
+    } finally {
+      setIsSavingApiKey(false);
+    }
+  };
+
   // Handlers
   const handleSignOut = async () => {
     setIsSignOutLoading(true);
 
-    // Clear user-specific cache entries
+    // Clear ALL user cache from localStorage on logout
     if (user) {
-      const userCacheKeys = [
-        getCacheKey(user.id, CACHE_KEYS.WATCH_HISTORY),
-        getCacheKey(user.id, CACHE_KEYS.WATCHLIST),
-        getCacheKey(user.id, CACHE_KEYS.STATS),
-      ];
-      userCacheKeys.forEach((key) => {
-        sessionStorage.removeItem(key);
-      });
+      console.log(`🚪 [Sign Out] Clearing cache for user: ${user.id}`);
+      clearUserCache(user.id);
     }
 
     // Reset states
     setDataInitialized(false);
     fetchingRef.current = false;
+    apiKeyFetchingRef.current = false;
 
     await supabase.auth.signOut();
+    console.log(`✅ [Sign Out] User signed out successfully`);
     router.push("/landing");
   };
 
@@ -608,14 +873,28 @@ export default function ProfilePage() {
               <h3 className="px-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
                 Preferences
               </h3>
-              {SETTINGS_LINKS.map((link) => (
-                <SettingsLink key={link.label} item={link} />
-              ))}
+              {SETTINGS_LINKS.map((link) =>
+                link.hasInput ? (
+                  <GeminiApiKeyInput
+                    key={link.label}
+                    value={apiKeyInput}
+                    onChange={setApiKeyInput}
+                    onSave={handleSaveApiKey}
+                    onDelete={handleDeleteApiKey}
+                    isLoading={isLoadingApiKey}
+                    isSaving={isSavingApiKey}
+                    keyPreview={apiKeyPreview}
+                    hasKey={hasApiKey}
+                  />
+                ) : (
+                  <SettingsLink key={link.label} item={link} />
+                )
+              )}
             </div>
           </div>
 
           {/* --- RIGHT COLUMN: Content Feed --- */}
-          <div className="lg:col-span-8 space-y-10 overflow-y-auto max-h-[calc(100vh-8rem)] scrollbar-hide">
+          <div className="lg:col-span-8 space-y-12 overflow-y-auto max-h-[calc(100vh-8rem)] scrollbar-hide">
             <div className="flex flex-col items-start gap-1">
               <h1
                 className="text-4xl md:text-5xl font-bold text-white tracking-tight"
