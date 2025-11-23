@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +24,14 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/supabase";
 import { getWatchlist } from "@/src/lib/database";
 
+// Cache Configuration
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEYS = {
+  WATCH_HISTORY: "profile_watch_history",
+  WATCHLIST: "profile_watchlist",
+  STATS: "profile_stats",
+};
+
 const INITIAL_STATS = [
   { label: "Movies", value: "0", icon: Film, color: "text-cyan-400" },
   { label: "Series", value: "0", icon: Tv, color: "text-orange-400" },
@@ -41,6 +49,44 @@ const SETTINGS_LINKS = [
   },
   { label: "Privacy & Security", icon: Shield, desc: "Password, 2FA" },
 ];
+
+// Cache Utilities
+const getCacheKey = (userId: string, type: string) => `${type}_${userId}`;
+
+const isCacheValid = (timestamp: number) => {
+  return Date.now() - timestamp < CACHE_DURATION;
+};
+
+const getCachedData = (cacheKey: string) => {
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const { data, timestamp } = JSON.parse(cached);
+    if (!isCacheValid(timestamp)) {
+      sessionStorage.removeItem(cacheKey);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    sessionStorage.removeItem(cacheKey);
+    return null;
+  }
+};
+
+const setCachedData = (cacheKey: string, data: any) => {
+  try {
+    sessionStorage.setItem(
+      cacheKey,
+      JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      })
+    );
+  } catch (error) {
+    // silent fail
+  }
+};
 
 const formatWatchHistory = (data: any[]) => {
   return data.map((item: any) => {
@@ -163,6 +209,7 @@ const ContinueWatchingCard = ({
         alt={item.title}
         fill
         className="object-cover transition-transform duration-500"
+        sizes="(max-width: 768px) 50vw, 160px"
       />
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
         <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
@@ -357,6 +404,8 @@ export default function ProfilePage() {
   const [showAllRecommended, setShowAllRecommended] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
+  const [dataInitialized, setDataInitialized] = useState(false);
+  const fetchingRef = useRef(false);
 
   // Auth Guard
   useEffect(() => {
@@ -365,19 +414,26 @@ export default function ProfilePage() {
 
   // Data Fetching
   useEffect(() => {
-    if (!user) return;
+    if (!user || fetchingRef.current || dataInitialized) return;
 
     const fetchAllData = async () => {
+      if (fetchingRef.current) {
+        return;
+      }
+      fetchingRef.current = true;
+
       // 1. Load History & Stats
       try {
         setIsLoadingHistory(true);
-        const cachedHistory = sessionStorage.getItem("profile_watch_history");
-        const cachedStats = sessionStorage.getItem("profile_stats");
+        const historyKey = getCacheKey(user.id, CACHE_KEYS.WATCH_HISTORY);
+        const statsKey = getCacheKey(user.id, CACHE_KEYS.STATS);
+
+        const cachedHistory = getCachedData(historyKey);
+        const cachedStats = getCachedData(statsKey);
 
         if (cachedHistory && cachedStats) {
-          setContinueWatching(JSON.parse(cachedHistory));
-          setStats(JSON.parse(cachedStats));
-          setIsLoadingHistory(false);
+          setContinueWatching(cachedHistory);
+          setStats(cachedStats);
         } else {
           const {
             data: { session },
@@ -390,22 +446,15 @@ export default function ProfilePage() {
               const { data } = await res.json();
               const formattedStats = calculateStats(data);
               const formattedHistory = formatWatchHistory(data);
-
               setStats(formattedStats);
               setContinueWatching(formattedHistory);
-              sessionStorage.setItem(
-                "profile_stats",
-                JSON.stringify(formattedStats)
-              );
-              sessionStorage.setItem(
-                "profile_watch_history",
-                JSON.stringify(formattedHistory)
-              );
+              setCachedData(statsKey, formattedStats);
+              setCachedData(historyKey, formattedHistory);
             }
           }
         }
       } catch (error) {
-        console.error("History fetch error:", error);
+        // silent fail
       } finally {
         setIsLoadingHistory(false);
       }
@@ -413,20 +462,24 @@ export default function ProfilePage() {
       // 2. Load Watchlist
       try {
         setIsLoadingWatchlist(true);
-        const cachedWatchlist = sessionStorage.getItem("profile_watchlist");
+        const watchlistKey = getCacheKey(user.id, CACHE_KEYS.WATCHLIST);
+        const cachedWatchlist = getCachedData(watchlistKey);
+
         if (cachedWatchlist) {
-          setWatchlist(JSON.parse(cachedWatchlist));
-          setIsLoadingWatchlist(false);
+          setWatchlist(cachedWatchlist);
         } else {
           const data = await getWatchlist(user.id);
           setWatchlist(data);
-          sessionStorage.setItem("profile_watchlist", JSON.stringify(data));
+          setCachedData(watchlistKey, data);
         }
       } catch (error) {
-        console.error("Watchlist fetch error:", error);
+        // silent fail
       } finally {
         setIsLoadingWatchlist(false);
       }
+
+      setDataInitialized(true);
+      fetchingRef.current = false;
     };
 
     fetchAllData();
@@ -435,8 +488,24 @@ export default function ProfilePage() {
   // Handlers
   const handleSignOut = async () => {
     setIsSignOutLoading(true);
+
+    // Clear user-specific cache entries
+    if (user) {
+      const userCacheKeys = [
+        getCacheKey(user.id, CACHE_KEYS.WATCH_HISTORY),
+        getCacheKey(user.id, CACHE_KEYS.WATCHLIST),
+        getCacheKey(user.id, CACHE_KEYS.STATS),
+      ];
+      userCacheKeys.forEach((key) => {
+        sessionStorage.removeItem(key);
+      });
+    }
+
+    // Reset states
+    setDataInitialized(false);
+    fetchingRef.current = false;
+
     await supabase.auth.signOut();
-    sessionStorage.clear();
     router.push("/landing");
   };
 
@@ -491,6 +560,7 @@ export default function ProfilePage() {
                         alt="Avatar"
                         fill
                         className="object-cover"
+                        sizes="112px"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-[#0f1115]">
