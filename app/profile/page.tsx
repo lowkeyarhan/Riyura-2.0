@@ -1,10 +1,8 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
-import { useAuth } from "@/src/hooks/useAuth";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/src/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut,
@@ -22,6 +20,10 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { useAuth } from "@/src/hooks/useAuth";
+import { supabase } from "@/src/lib/supabase";
+import { getWatchlist } from "@/src/lib/database";
+
 const INITIAL_STATS = [
   { label: "Movies", value: "0", icon: Film, color: "text-cyan-400" },
   { label: "Series", value: "0", icon: Tv, color: "text-orange-400" },
@@ -31,10 +33,69 @@ const INITIAL_STATS = [
 const SETTINGS_LINKS = [
   { label: "Account Settings", icon: User, desc: "Personal info, Email" },
   { label: "Subscription Plan", icon: CreditCard, desc: "Manage Premium" },
-  { label: "Gemini API Key", icon: Key, desc: "Manage AI Integration" },
+  {
+    label: "Gemini API Key",
+    icon: Key,
+    desc: "Manage AI Integration",
+    hasInput: true,
+  },
   { label: "Privacy & Security", icon: Shield, desc: "Password, 2FA" },
 ];
 
+const formatWatchHistory = (data: any[]) => {
+  return data.map((item: any) => {
+    const totalLength = item.episode_length || 7200;
+    const progress = Math.min(
+      100,
+      Math.round((item.duration_sec / totalLength) * 100)
+    );
+    const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
+
+    return {
+      id: item.id,
+      tmdbId: item.tmdb_id,
+      title: item.title,
+      progress,
+      image: item.poster_path
+        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+        : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+      type:
+        item.media_type === "movie"
+          ? "Movie"
+          : item.episode_name
+          ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
+          : `S${item.season_number} E${item.episode_number}`,
+      year: item.release_date
+        ? new Date(item.release_date).getFullYear()
+        : null,
+      remaining: `${Math.floor(remainingSeconds / 60)}m remaining`,
+      mediaType: item.media_type,
+      seasonNumber: item.season_number,
+      episodeNumber: item.episode_number,
+      streamId: item.stream_id,
+    };
+  });
+};
+
+const calculateStats = (data: any[]) => {
+  const moviesCount = data.filter((i: any) => i.media_type === "movie").length;
+  const seriesCount = new Set(
+    data.filter((i: any) => i.media_type !== "movie").map((i: any) => i.tmdb_id)
+  ).size;
+  const totalSeconds = data.reduce(
+    (acc: number, item: any) => acc + (item.duration_sec || 0),
+    0
+  );
+  const hoursCount = Math.round(totalSeconds / 3600);
+
+  return [
+    { ...INITIAL_STATS[0], value: moviesCount.toString() },
+    { ...INITIAL_STATS[1], value: seriesCount.toString() },
+    { ...INITIAL_STATS[2], value: hoursCount.toString() },
+  ];
+};
+
+// --- Sub-Components ---
 const StatBadge = ({ stat }: { stat: (typeof INITIAL_STATS)[0] }) => (
   <div className="flex flex-col items-center p-4 rounded-2xl bg-[#29292930] border border-white/5 flex-1 group hover:border-white/10 hover:bg-[#29292950] transition-colors">
     <span className="text-xl font-bold text-white leading-none mb-1">
@@ -46,13 +107,7 @@ const StatBadge = ({ stat }: { stat: (typeof INITIAL_STATS)[0] }) => (
   </div>
 );
 
-const SettingsLink = ({
-  item,
-  showInput,
-}: {
-  item: (typeof SETTINGS_LINKS)[0];
-  showInput?: boolean;
-}) => (
+const SettingsLink = ({ item }: { item: (typeof SETTINGS_LINKS)[0] }) => (
   <div className="w-full">
     <div className="w-full bg-[#1518215f] border border-white/5 rounded-xl hover:bg-[#15182180] hover:border-white/20 transition-all group text-left shadow-sm p-4 flex flex-col min-h-[80px] justify-center">
       <div className="flex items-start gap-4 w-full">
@@ -64,7 +119,7 @@ const SettingsLink = ({
             {item.label}
           </h4>
           <p className="text-xs text-gray-500">{item.desc}</p>
-          {showInput && (
+          {item.hasInput && (
             <input
               type="text"
               placeholder="Enter Gemini API Key"
@@ -91,19 +146,13 @@ const ContinueWatchingCard = ({
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: {
-        duration: 0.5,
-        ease: [0.22, 1, 0.36, 1],
-      },
+      transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
     }}
     exit={{
       opacity: 0,
       y: 0,
       scale: 0.95,
-      transition: {
-        duration: 0.6,
-        ease: [0.22, 1, 0.36, 1],
-      },
+      transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
     }}
     onClick={onClick}
     className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
@@ -138,7 +187,7 @@ const ContinueWatchingCard = ({
         <span className="bg-white/10 px-2 py-0.5 rounded text-gray-300">
           {item.type}
         </span>
-        {item.type?.toLowerCase() === "movie" && item.year && (
+        {item.type?.toLowerCase().includes("movie") && item.year && (
           <span className="text-gray-600">• {item.year}</span>
         )}
       </p>
@@ -154,28 +203,82 @@ const ContinueWatchingCard = ({
   </motion.div>
 );
 
-const WatchlistCard = () => (
-  <div className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl hover:border-white/10 hover:bg-[#15182170] overflow-hidden cursor-pointer shadow-md transition-all duration-300">
-    <div className="absolute inset-0 ">
-      <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
-        POSTER
+const WatchlistCard = ({
+  item,
+  onClick,
+}: {
+  item?: any;
+  onClick?: () => void;
+}) => {
+  if (!item) {
+    return (
+      <div className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl hover:border-white/10 hover:bg-[#15182170] overflow-hidden cursor-pointer shadow-md transition-all duration-300">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
+            POSTER
+          </div>
+          <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0f1115]/90 border border-white/10 shadow-sm">
+            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+            <span className="text-[10px] font-bold text-white">8.5</span>
+          </div>
+          <div className="absolute bottom-0 inset-x-0 p-3">
+            <div className="w-3/4 h-3 bg-white/10 rounded mb-2" />
+            <div className="w-1/2 h-2 bg-white/5 rounded" />
+          </div>
+        </div>
+        <div className="absolute inset-0 bg-[#0f1115]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+            <Play className="w-4 h-4 fill-black ml-0.5" />
+          </div>
+        </div>
       </div>
-      <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0f1115]/90 border border-white/10 shadow-sm">
-        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-        <span className="text-[10px] font-bold text-white">8.5</span>
+    );
+  }
+
+  const posterUrl = item.poster_path
+    ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+    : null;
+  const year = item.release_date
+    ? new Date(item.release_date).getFullYear()
+    : null;
+
+  return (
+    <div
+      className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl hover:border-white/10 hover:bg-[#15182170] overflow-hidden cursor-pointer shadow-md transition-all duration-300"
+      onClick={onClick}
+    >
+      {posterUrl ? (
+        <Image
+          src={posterUrl}
+          alt={item.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
+          NO IMAGE
+        </div>
+      )}
+      <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+        <h4 className="text-sm font-bold text-white line-clamp-2 mb-1">
+          {item.title}
+        </h4>
+        <div className="flex items-center gap-2 text-xs text-gray-300">
+          {year && <span>{year}</span>}
+          {item.media_type === "tv" && item.number_of_seasons && (
+            <span>{item.number_of_seasons} seasons</span>
+          )}
+        </div>
       </div>
-      <div className="absolute bottom-0 inset-x-0 p-3">
-        <div className="w-3/4 h-3 bg-white/10 rounded mb-2" />
-        <div className="w-1/2 h-2 bg-white/5 rounded" />
+      <div className="absolute inset-0 bg-[#0f1115]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+          <Play className="w-4 h-4 fill-black ml-0.5" />
+        </div>
       </div>
     </div>
-    <div className="absolute inset-0 bg-[#0f1115]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-      <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-        <Play className="w-4 h-4 fill-black ml-0.5" />
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const ProfileSkeleton = () => (
   <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
@@ -206,206 +309,162 @@ const ProfileSkeleton = () => (
             ))}
           </div>
         </div>
-
         {/* Right Column Skeleton */}
         <div className="lg:col-span-8 space-y-10 overflow-hidden pr-2">
           <div className="flex flex-col items-start gap-3 animate-pulse">
             <div className="h-12 w-64 bg-white/10 rounded-xl" />
             <div className="h-5 w-48 bg-white/5 rounded-lg" />
           </div>
-
-          <div className="space-y-5">
-            <div className="h-8 w-40 bg-white/10 rounded-lg animate-pulse" />
-            <div className="space-y-4">
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-full h-40 bg-[#1518215f] border border-white/5 rounded-2xl animate-pulse"
-                />
-              ))}
+          {[1, 2, 3].map((section) => (
+            <div key={section} className="space-y-5">
+              <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse" />
+              <div
+                className={`grid grid-cols-2 ${
+                  section === 1 ? "" : "sm:grid-cols-4"
+                } gap-5`}
+              >
+                {section === 1
+                  ? [1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="w-full h-40 bg-[#1518215f] border border-white/5 rounded-2xl animate-pulse"
+                      />
+                    ))
+                  : [1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
+                      />
+                    ))}
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-5">
-            <div className="flex justify-between items-center animate-pulse">
-              <div className="h-8 w-32 bg-white/10 rounded-lg" />
-              <div className="h-5 w-20 bg-white/5 rounded-lg" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Recommended Skeleton */}
-          <div className="space-y-5">
-            <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Recommended Skeleton */}
-          <div className="space-y-5">
-            <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl animate-pulse"
-                />
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
   </div>
 );
 
+// --- Main Page Component ---
 export default function ProfilePage() {
   const { user, loading, firstName, avatarUrl } = useAuth();
   const router = useRouter();
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
   const [continueWatching, setContinueWatching] = useState<any[]>([]);
-  const [watchHistoryLoading, setWatchHistoryLoading] = useState(true);
+  const [watchlist, setWatchlist] = useState<any[]>([]);
+  const [stats, setStats] = useState(INITIAL_STATS);
   const [showAllWatching, setShowAllWatching] = useState(false);
   const [showAllRecommended, setShowAllRecommended] = useState(false);
-  const [stats, setStats] = useState(INITIAL_STATS);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
 
+  // Auth Guard
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/auth");
-    }
+    if (!loading && !user) router.replace("/auth");
   }, [loading, user, router]);
 
+  // Data Fetching
   useEffect(() => {
-    const fetchWatchHistory = async () => {
-      if (!user) return;
+    if (!user) return;
 
+    const fetchAllData = async () => {
+      // 1. Load History & Stats
       try {
-        setWatchHistoryLoading(true);
-
-        // Check session storage first
-        const cachedData = sessionStorage.getItem("profile_watch_history");
+        setIsLoadingHistory(true);
+        const cachedHistory = sessionStorage.getItem("profile_watch_history");
         const cachedStats = sessionStorage.getItem("profile_stats");
 
-        if (cachedData && cachedStats) {
-          setContinueWatching(JSON.parse(cachedData));
+        if (cachedHistory && cachedStats) {
+          setContinueWatching(JSON.parse(cachedHistory));
           setStats(JSON.parse(cachedStats));
-          setWatchHistoryLoading(false);
-          return;
+          setIsLoadingHistory(false);
+        } else {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session) {
+            const res = await fetch("/api/watch-history", {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (res.ok) {
+              const { data } = await res.json();
+              const formattedStats = calculateStats(data);
+              const formattedHistory = formatWatchHistory(data);
+
+              setStats(formattedStats);
+              setContinueWatching(formattedHistory);
+              sessionStorage.setItem(
+                "profile_stats",
+                JSON.stringify(formattedStats)
+              );
+              sessionStorage.setItem(
+                "profile_watch_history",
+                JSON.stringify(formattedHistory)
+              );
+            }
+          }
         }
-
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) return;
-
-        const response = await fetch("/api/watch-history", {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error("Failed to fetch watch history");
-
-        const { data } = await response.json();
-
-        // Calculate Stats
-        const moviesCount = data.filter(
-          (i: any) => i.media_type === "movie"
-        ).length;
-        const seriesCount = new Set(
-          data
-            .filter((i: any) => i.media_type !== "movie")
-            .map((i: any) => i.tmdb_id)
-        ).size;
-        const totalSeconds = data.reduce(
-          (acc: number, item: any) => acc + (item.duration_sec || 0),
-          0
-        );
-        const hoursCount = Math.round(totalSeconds / 3600);
-
-        const newStats = [
-          { ...INITIAL_STATS[0], value: moviesCount.toString() },
-          { ...INITIAL_STATS[1], value: seriesCount.toString() },
-          { ...INITIAL_STATS[2], value: hoursCount.toString() },
-        ];
-
-        setStats(newStats);
-        sessionStorage.setItem("profile_stats", JSON.stringify(newStats));
-
-        // Transform the data to match the UI format
-        const transformed = data.map((item: any) => {
-          const totalLength = item.episode_length || 7200;
-          const progress = Math.min(
-            100,
-            Math.round((item.duration_sec / totalLength) * 100)
-          );
-          const remainingSeconds = Math.max(0, totalLength - item.duration_sec);
-
-          return {
-            id: item.id,
-            tmdbId: item.tmdb_id,
-            title: item.title,
-            progress,
-            image: item.poster_path
-              ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-              : "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
-            type:
-              item.media_type === "movie"
-                ? "Movie"
-                : item.episode_name
-                ? `S${item.season_number} E${item.episode_number}: ${item.episode_name}`
-                : `S${item.season_number} E${item.episode_number}`,
-            year: item.release_date
-              ? new Date(item.release_date).getFullYear()
-              : null,
-            remaining: `${Math.floor(remainingSeconds / 60)}m remaining`,
-            mediaType: item.media_type,
-            seasonNumber: item.season_number,
-            episodeNumber: item.episode_number,
-            streamId: item.stream_id,
-          };
-        });
-
-        setContinueWatching(transformed);
-        sessionStorage.setItem(
-          "profile_watch_history",
-          JSON.stringify(transformed)
-        );
       } catch (error) {
-        console.error("Error fetching watch history:", error);
+        console.error("History fetch error:", error);
       } finally {
-        setWatchHistoryLoading(false);
+        setIsLoadingHistory(false);
+      }
+
+      // 2. Load Watchlist
+      try {
+        setIsLoadingWatchlist(true);
+        const cachedWatchlist = sessionStorage.getItem("profile_watchlist");
+        if (cachedWatchlist) {
+          setWatchlist(JSON.parse(cachedWatchlist));
+          setIsLoadingWatchlist(false);
+        } else {
+          const data = await getWatchlist(user.id);
+          setWatchlist(data);
+          sessionStorage.setItem("profile_watchlist", JSON.stringify(data));
+        }
+      } catch (error) {
+        console.error("Watchlist fetch error:", error);
+      } finally {
+        setIsLoadingWatchlist(false);
       }
     };
 
-    fetchWatchHistory();
+    fetchAllData();
   }, [user]);
 
+  // Handlers
   const handleSignOut = async () => {
     setIsSignOutLoading(true);
     await supabase.auth.signOut();
-    sessionStorage.removeItem("profile_watch_history");
-    sessionStorage.removeItem("profile_stats");
+    sessionStorage.clear();
     router.push("/landing");
   };
 
-  if (loading || !user) {
-    return <ProfileSkeleton />;
-  }
+  const handlePlayClick = useCallback(
+    (item: any) => {
+      if (item.mediaType === "movie") {
+        const url = `/player/movie/${item.tmdbId}${
+          item.streamId ? `?stream=${item.streamId}` : ""
+        }`;
+        router.push(url);
+      } else {
+        const params = new URLSearchParams();
+        if (item.streamId) params.set("stream", item.streamId);
+        if (item.seasonNumber)
+          params.set("season", item.seasonNumber.toString());
+        if (item.episodeNumber)
+          params.set("episode", item.episodeNumber.toString());
+        router.push(
+          `/player/tvshow/${item.tmdbId}${
+            params.toString() ? `?${params.toString()}` : ""
+          }`
+        );
+      }
+    },
+    [router]
+  );
+
+  if (loading || !user) return <ProfileSkeleton />;
 
   return (
     <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
@@ -420,9 +479,8 @@ export default function ProfilePage() {
       {/* --- MAIN CONTENT --- */}
       <div className="relative z-10 w-full h-full pt-32 pb-16 px-8 md:px-16 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
-          {/* --- LEFT COLUMN: Identity & Navigation (4 cols) --- */}
+          {/* --- LEFT COLUMN: Identity & Navigation --- */}
           <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-fit">
-            {/* Identity Card */}
             <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
               <div className="relative flex flex-col items-center text-center mt-4">
                 <div className="relative w-28 h-28 mb-5 group">
@@ -476,24 +534,18 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Settings Nav Menu */}
             <div className="space-y-3 mt-6 mb-2">
               <h3 className="px-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
                 Preferences
               </h3>
-              {SETTINGS_LINKS.map((link) =>
-                link.label === "Gemini API Key" ? (
-                  <SettingsLink key={link.label} item={link} showInput />
-                ) : (
-                  <SettingsLink key={link.label} item={link} />
-                )
-              )}
+              {SETTINGS_LINKS.map((link) => (
+                <SettingsLink key={link.label} item={link} />
+              ))}
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: Content Feed (8 cols) --- */}
+          {/* --- RIGHT COLUMN: Content Feed --- */}
           <div className="lg:col-span-8 space-y-10 overflow-y-auto max-h-[calc(100vh-8rem)] scrollbar-hide">
-            {/* Header Section */}
             <div className="flex flex-col items-start gap-1">
               <h1
                 className="text-4xl md:text-5xl font-bold text-white tracking-tight"
@@ -504,7 +556,7 @@ export default function ProfilePage() {
               <p className="text-gray-400">Welcome back to your collection.</p>
             </div>
 
-            {/* Continue Watching Section */}
+            {/* Continue Watching */}
             <section>
               <div className="flex items-center justify-between mb-5">
                 <h3
@@ -513,7 +565,7 @@ export default function ProfilePage() {
                 >
                   Continue Watching
                 </h3>
-                {!watchHistoryLoading && continueWatching.length > 2 && (
+                {!isLoadingHistory && continueWatching.length > 2 && (
                   <button
                     onClick={() => setShowAllWatching(!showAllWatching)}
                     className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
@@ -523,7 +575,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <motion.div layout className="flex flex-col">
-                {watchHistoryLoading ? (
+                {isLoadingHistory ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   </div>
@@ -575,40 +627,12 @@ export default function ProfilePage() {
                           },
                         }}
                         transition={{
-                          layout: {
-                            duration: 0.5,
-                            ease: [0.22, 1, 0.36, 1],
-                          },
+                          layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
                         }}
                       >
                         <ContinueWatchingCard
                           item={item}
-                          onClick={() => {
-                            if (item.mediaType === "movie") {
-                              const url = `/player/movie/${item.tmdbId}${
-                                item.streamId ? `?stream=${item.streamId}` : ""
-                              }`;
-                              router.push(url);
-                            } else {
-                              const params = new URLSearchParams();
-                              if (item.streamId)
-                                params.set("stream", item.streamId);
-                              if (item.seasonNumber)
-                                params.set(
-                                  "season",
-                                  item.seasonNumber.toString()
-                                );
-                              if (item.episodeNumber)
-                                params.set(
-                                  "episode",
-                                  item.episodeNumber.toString()
-                                );
-                              const url = `/player/tvshow/${item.tmdbId}${
-                                params.toString() ? `?${params.toString()}` : ""
-                              }`;
-                              router.push(url);
-                            }
-                          }}
+                          onClick={() => handlePlayClick(item)}
                         />
                       </motion.div>
                     ))}
@@ -617,7 +641,7 @@ export default function ProfilePage() {
               </motion.div>
             </section>
 
-            {/* Watchlist Preview Section */}
+            {/* Watchlist */}
             <section>
               <div className="flex items-center justify-between mb-5">
                 <h3
@@ -633,15 +657,45 @@ export default function ProfilePage() {
                   View All <ChevronRight size={16} />
                 </button>
               </div>
-
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <WatchlistCard key={i} />
-                ))}
+                {isLoadingWatchlist ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <WatchlistCard key={`loading-${i}`} />
+                  ))
+                ) : watchlist.length === 0 ? (
+                  <div className="col-span-full text-center py-12 text-gray-400">
+                    <Film className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>
+                      Your watchlist is empty. Start adding movies and shows!
+                    </p>
+                    <button
+                      onClick={() => router.push("/explore")}
+                      className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Explore Content
+                    </button>
+                  </div>
+                ) : (
+                  watchlist
+                    .slice(0, 4)
+                    .map((item) => (
+                      <WatchlistCard
+                        key={item.id}
+                        item={item}
+                        onClick={() =>
+                          router.push(
+                            item.media_type === "movie"
+                              ? `/details/movie/${item.tmdb_id}`
+                              : `/details/tvshow/${item.tmdb_id}`
+                          )
+                        }
+                      />
+                    ))
+                )}
               </div>
             </section>
 
-            {/* Recommended Section */}
+            {/* Recommended */}
             <section>
               <div className="flex items-center justify-between mb-5">
                 <h3
@@ -657,7 +711,6 @@ export default function ProfilePage() {
                   {showAllRecommended ? "Show Less" : "Show More"}
                 </button>
               </div>
-
               <AnimatePresence>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 lg:pb-16">
                   {Array.from({ length: showAllRecommended ? 8 : 4 }).map(
