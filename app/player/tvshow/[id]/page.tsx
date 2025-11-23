@@ -31,16 +31,16 @@ const WATCH_TIMER_INTERVAL = 1000;
 // --- Stream Links ---
 const generateStreamLinks = (tmdbId: string, s: number, e: number) => [
   {
-    id: "syntheriontv",
-    name: "Syntherion",
-    quality: "1080p • Subs",
-    link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
-  },
-  {
     id: "ironlinktv",
     name: "IronLink",
     quality: "1080p • Fast",
     link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
+  },
+  {
+    id: "syntheriontv",
+    name: "Syntherion",
+    quality: "1080p • Subs",
+    link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/tv/${tmdbId}/${s}/${e}`,
   },
   {
     id: "dormannutv",
@@ -138,6 +138,31 @@ export default function TVShowPlayer() {
     selectedEpisode
   );
 
+  // Refs for tracking current state in cleanup/unload
+  const activeServerIndexRef = useRef(activeServerIndex);
+  const tvShowRef = useRef(tvShow);
+  const episodesRef = useRef(episodes);
+  const selectedSeasonRef = useRef(selectedSeason);
+  const selectedEpisodeRef = useRef(selectedEpisode);
+  const serversRef = useRef(servers);
+
+  // Update refs on state change
+  useEffect(() => {
+    activeServerIndexRef.current = activeServerIndex;
+    tvShowRef.current = tvShow;
+    episodesRef.current = episodes;
+    selectedSeasonRef.current = selectedSeason;
+    selectedEpisodeRef.current = selectedEpisode;
+    serversRef.current = servers;
+  }, [
+    activeServerIndex,
+    tvShow,
+    episodes,
+    selectedSeason,
+    selectedEpisode,
+    servers,
+  ]);
+
   // --- Logic ---
   useEffect(() => {
     const fetchShow = async () => {
@@ -226,38 +251,58 @@ export default function TVShowPlayer() {
   }, [searchParams, servers]);
 
   useEffect(() => {
+    // Start timer
+    console.log("⏱️ [Watch Timer] Started");
     watchTimer.current = setInterval(() => {
       watchDuration.current += 1;
     }, WATCH_TIMER_INTERVAL);
-    return () => {
-      if (watchTimer.current) clearInterval(watchTimer.current);
+
+    const saveWatchHistory = () => {
       if (
         !user ||
-        !tvShow ||
+        !tvShowRef.current ||
         hasSavedWatch.current ||
         watchDuration.current < MIN_WATCH_DURATION
-      )
+      ) {
+        console.log(
+          `⚠️ [Watch Timer] Save skipped. Duration: ${watchDuration.current}s (Min: ${MIN_WATCH_DURATION}s)`
+        );
         return;
-      hasSavedWatch.current = true;
-      const currentEpisode = episodes.find(
-        (ep) => ep.episode_number === selectedEpisode
+      }
+
+      console.log(
+        `💾 [Watch Timer] Saving history. Duration: ${watchDuration.current}s`
       );
+
+      hasSavedWatch.current = true;
+      const currentTvShow = tvShowRef.current;
+      const currentEpisodes = episodesRef.current;
+      const currentSeason = selectedSeasonRef.current;
+      const currentEpisodeNum = selectedEpisodeRef.current;
+      const currentServers = serversRef.current;
+      const currentServerIndex = activeServerIndexRef.current;
+
+      const currentEpisodeData = currentEpisodes.find(
+        (ep) => ep.episode_number === currentEpisodeNum
+      );
+
       const watchData = {
         user_id: user.id,
         tmdb_id: parseInt(tvShowId),
-        title: `${tvShow.name}`,
+        title: `${currentTvShow.name}`,
         media_type: "tv",
-        stream_id: servers[activeServerIndex].id,
-        poster_path: tvShow.poster_path,
-        release_date: tvShow.first_air_date,
+        stream_id: currentServers[currentServerIndex]?.id || "unknown",
+        poster_path: currentTvShow.poster_path,
+        release_date: currentTvShow.first_air_date,
         duration_sec: watchDuration.current,
-        season_number: selectedSeason,
-        episode_number: selectedEpisode,
-        episode_name: currentEpisode?.name || null,
-        episode_length: currentEpisode?.runtime
-          ? currentEpisode.runtime * 60
+        season_number: currentSeason,
+        episode_number: currentEpisodeNum,
+        episode_name: currentEpisodeData?.name || null,
+        episode_length: currentEpisodeData?.runtime
+          ? currentEpisodeData.runtime * 60
           : null,
       };
+
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
         fetch("/api/watch-history", {
@@ -268,22 +313,27 @@ export default function TVShowPlayer() {
           },
           body: JSON.stringify(watchData),
           keepalive: true,
-        }).then(() => {
-          // Invalidate profile cache so it refreshes on next visit
-          invalidateProfileCache(user.id);
-        });
+        })
+          .then(() => {
+            invalidateProfileCache(user.id);
+          })
+          .catch((err) => console.error("Failed to save watch history", err));
       });
     };
-  }, [
-    user,
-    tvShow,
-    selectedSeason,
-    selectedEpisode,
-    activeServerIndex,
-    episodes,
-    tvShowId,
-    servers,
-  ]);
+
+    // Handle browser close / tab close
+    const handleBeforeUnload = () => {
+      saveWatchHistory();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Cleanup on component unmount (navigation)
+    return () => {
+      if (watchTimer.current) clearInterval(watchTimer.current);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveWatchHistory();
+    };
+  }, [user?.id, tvShowId]); // Only re-run if user ID or show ID changes
 
   const validSeasons = (tvShow?.seasons || []).filter(
     (s: any) => s.season_number !== 0 && s.episode_count > 0

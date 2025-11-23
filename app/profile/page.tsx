@@ -18,15 +18,17 @@ import {
   Star,
   Key,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/supabase";
-import { getWatchlist } from "@/src/lib/database";
+import { getWatchlist, removeFromWatchHistory } from "@/src/lib/database";
+import { useNotification } from "@/src/lib/NotificationContext";
 
 // Cache Configuration
 const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const RECOMMENDATIONS_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days (effectively infinite)
+const RECOMMENDATIONS_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const CACHE_KEYS = {
   WATCH_HISTORY: "profile_watch_history",
@@ -292,9 +294,11 @@ const GeminiApiKeyInput = ({
 const ContinueWatchingCard = ({
   item,
   onClick,
+  onDelete,
 }: {
   item: any;
   onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) => (
   <motion.div
     layout
@@ -311,10 +315,12 @@ const ContinueWatchingCard = ({
       scale: 0.95,
       transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
     }}
-    onClick={onClick}
-    className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
+    className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-default overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
   >
-    <div className="relative w-40 aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0 shadow-inner">
+    <div
+      className="relative w-40 aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0 shadow-inner cursor-pointer"
+      onClick={onClick}
+    >
       <Image
         src={item.image}
         alt={item.title}
@@ -329,14 +335,15 @@ const ContinueWatchingCard = ({
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
         <div
-          className="h-full bg-gradient-to-r from-red-600 to-orange-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+          className="h-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
           style={{ width: `${item.progress}%` }}
         />
       </div>
     </div>
     <div className="flex-1 min-w-0 py-1">
       <h4
-        className="text-lg font-bold text-white truncate mb-1 group-hover:text-red-500 transition-colors"
+        className="text-lg font-bold text-white truncate mb-1 group-hover:text-orange-600 transition-colors cursor-pointer"
+        onClick={onClick}
         style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
       >
         {item.title}
@@ -355,8 +362,12 @@ const ContinueWatchingCard = ({
         <span>{item.remaining}</span>
       </div>
     </div>
-    <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-[#0f1115] border border-white/5 text-gray-500 group-hover:text-white group-hover:border-white/20 transition-all">
-      <Play size={16} fill="currentColor" />
+    <div
+      onClick={onDelete}
+      className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer z-10"
+      title="Remove from history"
+    >
+      <Trash2 size={16} />
     </div>
   </motion.div>
 );
@@ -560,6 +571,7 @@ const ProfileSkeleton = () => (
 export default function ProfilePage() {
   const { user, loading, firstName, avatarUrl } = useAuth();
   const router = useRouter();
+  const { addNotification } = useNotification();
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
   const [continueWatching, setContinueWatching] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<any[]>([]);
@@ -664,7 +676,7 @@ export default function ProfilePage() {
     };
 
     fetchAllData();
-  }, [user]);
+  }, [user?.id]);
 
   // Fetch API Key Status on mount
   useEffect(() => {
@@ -725,7 +737,7 @@ export default function ProfilePage() {
     };
 
     fetchApiKeyStatus();
-  }, [user]);
+  }, [user?.id]);
 
   // Shared fetch function with strict locking
   const fetchRecommendations = useCallback(
@@ -824,7 +836,7 @@ export default function ProfilePage() {
     };
 
     loadFromCache();
-  }, [user]);
+  }, [user?.id]);
 
   // Expose refresh function for manual refresh
   const refreshRecommendations = useCallback(async () => {
@@ -975,6 +987,32 @@ export default function ProfilePage() {
     },
     [router]
   );
+
+  const handleDeleteHistory = async (e: React.MouseEvent, itemId: number) => {
+    e.stopPropagation();
+    if (!user) return;
+
+    try {
+      // Optimistic update
+      setContinueWatching((prev) => prev.filter((item) => item.id !== itemId));
+
+      await removeFromWatchHistory(user.id, itemId);
+
+      // Update cache
+      const historyKey = getCacheKey(user.id, CACHE_KEYS.WATCH_HISTORY);
+      const cachedHistory = getCachedData(historyKey) || [];
+      const updatedHistory = cachedHistory.filter(
+        (item: any) => item.id !== itemId
+      );
+      setCachedData(historyKey, updatedHistory);
+
+      console.log(`🗑️ [History] Removed item ${itemId}`);
+      addNotification("Removed from watch history", "success");
+    } catch (error) {
+      console.error("Failed to remove history item:", error);
+      addNotification("Failed to remove item", "error");
+    }
+  };
 
   if (loading || !user) return <ProfileSkeleton />;
 
@@ -1160,6 +1198,7 @@ export default function ProfilePage() {
                         <ContinueWatchingCard
                           item={item}
                           onClick={() => handlePlayClick(item)}
+                          onDelete={(e) => handleDeleteHistory(e, item.id)}
                         />
                       </motion.div>
                     ))}

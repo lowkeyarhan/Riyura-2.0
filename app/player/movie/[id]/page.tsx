@@ -26,16 +26,16 @@ const WATCH_TIMER_INTERVAL = 1000;
 // --- Stream Links ---
 const generateStreamLinks = (tmdbId: string) => [
   {
-    id: "syntherionmovie",
-    name: "Syntherion",
-    quality: "1080p • Subs",
-    link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/movie/${tmdbId}`,
-  },
-  {
     id: "ironlinkmovie",
     name: "IronLink",
     quality: "1080p • Fast",
     link: `${process.env.NEXT_PUBLIC_VIDLINK_BASE_URL}/movie/${tmdbId}`,
+  },
+  {
+    id: "syntherionmovie",
+    name: "Syntherion",
+    quality: "1080p • Subs",
+    link: `${process.env.NEXT_PUBLIC_VIDSRC_BASE_URL}/movie/${tmdbId}`,
   },
   {
     id: "dormannumovie",
@@ -131,6 +131,16 @@ export default function MoviePlayer() {
   const hasInitializedFromQuery = useRef(false);
   const servers = generateStreamLinks(movieId);
 
+  // Refs for tracking current state in cleanup/unload
+  const activeServerIndexRef = useRef(activeServerIndex);
+  const movieRef = useRef(movie);
+
+  // Update refs on state change
+  useEffect(() => {
+    activeServerIndexRef.current = activeServerIndex;
+    movieRef.current = movie;
+  }, [activeServerIndex, movie]);
+
   // Fetch Logic
   useEffect(() => {
     const fetchMovie = async () => {
@@ -187,32 +197,57 @@ export default function MoviePlayer() {
   }, [searchParams, servers]);
 
   // Watch Tracking Logic
+  // Watch Tracking Logic
   useEffect(() => {
+    // Start timer
+    console.log("⏱️ [Watch Timer] Started");
     watchTimer.current = setInterval(() => {
       watchDuration.current += 1;
     }, WATCH_TIMER_INTERVAL);
-    return () => {
-      if (watchTimer.current) clearInterval(watchTimer.current);
+
+    const saveWatchHistory = () => {
       if (
         !user ||
-        !movie ||
+        !movieRef.current ||
         hasSavedWatch.current ||
         watchDuration.current < MIN_WATCH_DURATION
-      )
+      ) {
+        console.log(
+          `⚠️ [Watch Timer] Save skipped. Duration: ${watchDuration.current}s (Min: ${MIN_WATCH_DURATION}s)`
+        );
         return;
+      }
+
+      console.log(
+        `💾 [Watch Timer] Saving history. Duration: ${watchDuration.current}s`
+      );
 
       hasSavedWatch.current = true;
+      const currentMovie = movieRef.current;
+      const currentServer = servers[activeServerIndexRef.current];
+
       const watchData = {
         user_id: user.id,
         tmdb_id: parseInt(movieId),
-        title: movie.title,
+        title: currentMovie.title,
         media_type: "movie",
-        stream_id: servers[activeServerIndex].id,
-        poster_path: movie.poster_path,
-        release_date: movie.release_date,
+        stream_id: currentServer.id,
+        poster_path: currentMovie.poster_path,
+        release_date: currentMovie.release_date,
         duration_sec: watchDuration.current,
-        episode_length: movie.runtime ? movie.runtime * 60 : null,
+        episode_length: currentMovie.runtime ? currentMovie.runtime * 60 : null,
       };
+
+      // Use sendBeacon for more reliable unload sending if possible, falling back to fetch
+      const blob = new Blob([JSON.stringify(watchData)], {
+        type: "application/json",
+      });
+
+      // We need the token for the API.
+      // Since sendBeacon doesn't support custom headers easily without CORS preflight issues in some cases,
+      // we'll stick to fetch with keepalive which is standard for this.
+      // However, we need to get the session synchronously or have it cached.
+      // Since we can't get it synchronously easily, we'll try to use the existing session if valid.
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
@@ -224,13 +259,27 @@ export default function MoviePlayer() {
           },
           body: JSON.stringify(watchData),
           keepalive: true,
-        }).then(() => {
-          // Invalidate profile cache so it refreshes on next visit
-          invalidateProfileCache(user.id);
-        });
+        })
+          .then(() => {
+            invalidateProfileCache(user.id);
+          })
+          .catch((err) => console.error("Failed to save watch history", err));
       });
     };
-  }, [user, movie, movieId, activeServerIndex, servers]);
+
+    // Handle browser close / tab close
+    const handleBeforeUnload = () => {
+      saveWatchHistory();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Cleanup on component unmount (navigation)
+    return () => {
+      if (watchTimer.current) clearInterval(watchTimer.current);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveWatchHistory();
+    };
+  }, [user?.id, movieId]); // Only re-run if user ID or movie ID changes
 
   const formatRuntime = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
   const formatMoney = (a: number) =>
