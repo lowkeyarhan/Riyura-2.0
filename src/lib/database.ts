@@ -97,9 +97,26 @@ export async function ensureUserProfile(user: {
     .from("profiles")
     .update({ last_login: now })
     .eq("id", user.uid);
-  
+
   return data;
 }
+
+// Cache Invalidation Helper
+const invalidateProfileCache = (userId: string) => {
+  if (typeof window === "undefined") return;
+
+  const keys = [
+    `profile_watchlist_${userId}`,
+    `profile_watch_history_${userId}`,
+    `profile_stats_${userId}`,
+    `profile_recommendations_${userId}`,
+  ];
+
+  keys.forEach((key) => {
+    localStorage.removeItem(key);
+  });
+  console.log(`🗑️ [Cache] Invalidated profile cache for user: ${userId}`);
+};
 
 // Watchlist Functions ------------------------------------------------------
 
@@ -133,6 +150,7 @@ export async function addToWatchlist(userId: string, item: WatchlistPayload) {
   }
 
   console.log("✅ [addToWatchlist] Successfully added:", data);
+  invalidateProfileCache(userId);
   return data as WatchlistItem;
 }
 
@@ -161,6 +179,7 @@ export async function removeFromWatchlist(
   }
 
   console.log("✅ [removeFromWatchlist] Successfully removed");
+  invalidateProfileCache(userId);
 }
 
 // Get user's watchlist
@@ -252,6 +271,8 @@ export async function addToWatchHistory(
     .single();
 
   if (error) throw error;
+
+  invalidateProfileCache(userId);
   return data as WatchHistoryItem;
 }
 
@@ -310,4 +331,5 @@ export async function removeFromWatchHistory(
     .eq("id", historyId);
 
   if (error) throw error;
+  invalidateProfileCache(userId);
 }

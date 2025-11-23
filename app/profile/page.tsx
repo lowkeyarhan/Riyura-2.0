@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,12 +25,15 @@ import { supabase } from "@/src/lib/supabase";
 import { getWatchlist } from "@/src/lib/database";
 
 // Cache Configuration
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const RECOMMENDATIONS_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days (effectively infinite)
+
 const CACHE_KEYS = {
   WATCH_HISTORY: "profile_watch_history",
   WATCHLIST: "profile_watchlist",
   STATS: "profile_stats",
   API_KEY: "profile_api_key",
+  RECOMMENDATIONS: "profile_recommendations",
 };
 
 const INITIAL_STATS = [
@@ -54,11 +57,14 @@ const SETTINGS_LINKS = [
 // Cache Utilities (using localStorage for persistence across sessions)
 const getCacheKey = (userId: string, type: string) => `${type}_${userId}`;
 
-const isCacheValid = (timestamp: number) => {
-  return Date.now() - timestamp < CACHE_DURATION;
+const isCacheValid = (timestamp: number, duration: number) => {
+  return Date.now() - timestamp < duration;
 };
 
-const getCachedData = (cacheKey: string) => {
+const getCachedData = (
+  cacheKey: string,
+  duration: number = DEFAULT_CACHE_DURATION
+) => {
   try {
     const cached = localStorage.getItem(cacheKey);
     if (!cached) {
@@ -67,7 +73,7 @@ const getCachedData = (cacheKey: string) => {
     }
 
     const { data, timestamp } = JSON.parse(cached);
-    if (!isCacheValid(timestamp)) {
+    if (!isCacheValid(timestamp, duration)) {
       console.log(`⏰ [Cache] Expired cache for: ${cacheKey}`);
       localStorage.removeItem(cacheKey);
       return null;
@@ -432,6 +438,59 @@ const WatchlistCard = ({
   );
 };
 
+// Recommendation Card (identical to watchlist card)
+const RecommendationCard = ({
+  item,
+  onClick,
+}: {
+  item: any;
+  onClick?: () => void;
+}) => {
+  const posterUrl = item.poster_path
+    ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+    : null;
+  const year = item.release_date
+    ? new Date(item.release_date).getFullYear()
+    : null;
+
+  return (
+    <div
+      className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl hover:border-white/10 hover:bg-[#15182170] overflow-hidden cursor-pointer shadow-md transition-all duration-300"
+      onClick={onClick}
+    >
+      {posterUrl ? (
+        <Image
+          src={posterUrl}
+          alt={item.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
+          NO IMAGE
+        </div>
+      )}
+      <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+        <h4 className="text-sm font-bold text-white line-clamp-2 mb-1">
+          {item.title}
+        </h4>
+        <div className="flex items-center gap-2 text-xs text-gray-300">
+          {year && <span>{year}</span>}
+          {item.media_type === "tv" && item.number_of_seasons && (
+            <span>{item.number_of_seasons} seasons</span>
+          )}
+        </div>
+      </div>
+      <div className="absolute inset-0 bg-[#0f1115]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+          <Play className="w-4 h-4 fill-black ml-0.5" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ProfileSkeleton = () => (
   <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
     <div className="relative z-10 w-full h-full pt-32 pb-16 px-8 md:px-16 lg:px-16">
@@ -512,6 +571,8 @@ export default function ProfilePage() {
   const [dataInitialized, setDataInitialized] = useState(false);
   const fetchingRef = useRef(false);
   const apiKeyFetchingRef = useRef(false);
+  const recommendationsFetchingRef = useRef(false);
+  const recommendationsDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Gemini API Key state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -519,6 +580,14 @@ export default function ProfilePage() {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isLoadingApiKey, setIsLoadingApiKey] = useState(true);
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
+
+  // Recommendations state
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+    useState(false);
+  const [recommendationsError, setRecommendationsError] = useState<
+    string | null
+  >(null);
 
   // Auth Guard
   useEffect(() => {
@@ -658,6 +727,165 @@ export default function ProfilePage() {
 
     fetchApiKeyStatus();
   }, [user]);
+
+  // Shared fetch function with strict locking
+  const fetchRecommendations = useCallback(
+    async (forceRefresh = false) => {
+      if (!user || !hasApiKey) return;
+
+      // Prevent duplicate calls if already fetching
+      if (recommendationsFetchingRef.current) {
+        console.log(`🚫 [Recommendations] Already fetching, skipping call`);
+        return;
+      }
+
+      try {
+        recommendationsFetchingRef.current = true;
+        setIsLoadingRecommendations(true);
+        setRecommendationsError(null);
+
+        // Check cache first (unless force refresh)
+        if (!forceRefresh) {
+          const cacheKey = getCacheKey(user.id, CACHE_KEYS.RECOMMENDATIONS);
+          const cached = getCachedData(
+            cacheKey,
+            RECOMMENDATIONS_CACHE_DURATION
+          );
+
+          if (cached) {
+            setRecommendations(cached);
+            setIsLoadingRecommendations(false);
+            recommendationsFetchingRef.current = false;
+            console.log(
+              `✅ [Recommendations] Loaded ${cached.length} from cache`
+            );
+            return;
+          }
+        }
+
+        console.log(`🎬 [Recommendations] Fetching for user: ${user.id}`);
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session) {
+          const res = await fetch("/api/gemini/recommendations", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            setRecommendations(data.recommendations || []);
+
+            // Cache the recommendations
+            const cacheKey = getCacheKey(user.id, CACHE_KEYS.RECOMMENDATIONS);
+            setCachedData(cacheKey, data.recommendations || []);
+
+            console.log(
+              `✅ [Recommendations] Fetched ${
+                data.recommendations?.length || 0
+              } recommendations`
+            );
+          } else {
+            const error = await res.json();
+            setRecommendationsError(
+              error.error || "Failed to load recommendations"
+            );
+            console.error(`❌ [Recommendations] Error:`, error.error);
+          }
+        }
+      } catch (error) {
+        console.error(`🔥 [Recommendations] Failed:`, error);
+        setRecommendationsError("Failed to load recommendations");
+      } finally {
+        setIsLoadingRecommendations(false);
+        recommendationsFetchingRef.current = false;
+      }
+    },
+    [user, hasApiKey]
+  );
+
+  // Initial Fetch Effect
+  useEffect(() => {
+    if (!user || !hasApiKey || isLoadingApiKey) return;
+
+    // Only fetch if not already loaded and not fetching
+    if (recommendations.length === 0 && !recommendationsFetchingRef.current) {
+      fetchRecommendations(false);
+    }
+  }, [
+    user,
+    hasApiKey,
+    isLoadingApiKey,
+    fetchRecommendations,
+    recommendations.length,
+  ]);
+
+  // Refs to track previous lengths for change detection
+  const prevWatchlistLengthRef = useRef<number | null>(null);
+  const prevHistoryLengthRef = useRef<number | null>(null);
+
+  // Auto-refresh recommendations when watchlist/history changes (with 3s debounce)
+  useEffect(() => {
+    if (!user || !hasApiKey || isLoadingApiKey || !dataInitialized) return;
+
+    const currentWatchlistLen = watchlist.length;
+    const currentHistoryLen = continueWatching.length;
+
+    // Initialize refs on first valid run
+    if (prevWatchlistLengthRef.current === null) {
+      prevWatchlistLengthRef.current = currentWatchlistLen;
+      prevHistoryLengthRef.current = currentHistoryLen;
+      return;
+    }
+
+    // Check if data actually changed
+    const hasChanged =
+      currentWatchlistLen !== prevWatchlistLengthRef.current ||
+      currentHistoryLen !== prevHistoryLengthRef.current;
+
+    if (!hasChanged) return;
+
+    // Update refs
+    prevWatchlistLengthRef.current = currentWatchlistLen;
+    prevHistoryLengthRef.current = currentHistoryLen;
+
+    // Clear existing debounce timer
+    if (recommendationsDebounceRef.current) {
+      clearTimeout(recommendationsDebounceRef.current);
+    }
+
+    // Set new debounce timer (3 seconds)
+    console.log(
+      `⏱️  [Recommendations] Data changed (Watchlist: ${currentWatchlistLen}, History: ${currentHistoryLen}). Refresh in 3s...`
+    );
+
+    recommendationsDebounceRef.current = setTimeout(() => {
+      console.log(`🔄 [Recommendations] Auto-refresh triggered by data change`);
+      fetchRecommendations(true); // Force refresh
+    }, 3000);
+
+    // Cleanup on unmount
+    return () => {
+      if (recommendationsDebounceRef.current) {
+        clearTimeout(recommendationsDebounceRef.current);
+      }
+    };
+  }, [
+    user,
+    hasApiKey,
+    isLoadingApiKey,
+    dataInitialized,
+    continueWatching.length,
+    watchlist.length,
+    fetchRecommendations,
+  ]);
+
+  // Expose refresh function for manual refresh
+  const refreshRecommendations = useCallback(async () => {
+    fetchRecommendations(true);
+  }, [fetchRecommendations]);
 
   // Handler: Save API Key
   const handleSaveApiKey = async (key: string) => {
@@ -1053,29 +1281,120 @@ export default function ProfilePage() {
                 >
                   Recommended for You
                 </h3>
-                <button
-                  onClick={() => setShowAllRecommended(!showAllRecommended)}
-                  className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
-                >
-                  {showAllRecommended ? "Show Less" : "Show More"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {hasApiKey && !isLoadingRecommendations && (
+                    <button
+                      onClick={refreshRecommendations}
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                      title="Refresh recommendations"
+                    >
+                      <svg
+                        className="w-4 h-4 text-gray-400 hover:text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                  {recommendations.length > 4 && (
+                    <button
+                      onClick={() => setShowAllRecommended(!showAllRecommended)}
+                      className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                    >
+                      {showAllRecommended ? "Show Less" : "Show More"}
+                    </button>
+                  )}
+                </div>
               </div>
-              <AnimatePresence>
+              {isLoadingRecommendations ||
+              recommendationsError ||
+              !hasApiKey ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 lg:pb-16">
                   {Array.from({ length: showAllRecommended ? 8 : 4 }).map(
                     (_, i) => (
-                      <motion.div
+                      <div
                         key={i}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { duration: 0.3 } }}
-                        exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                        className="group relative aspect-[2/3] bg-[#1518215f] border border-white/5 rounded-xl hover:border-white/10 hover:bg-[#15182170] overflow-hidden cursor-pointer shadow-md transition-all duration-300"
                       >
-                        <WatchlistCard />
-                      </motion.div>
+                        <div className="absolute inset-0">
+                          <div className="absolute inset-0 flex items-center justify-center text-gray-700 text-xs font-bold tracking-widest">
+                            {recommendationsError
+                              ? "ERROR"
+                              : !hasApiKey
+                              ? "NO API KEY"
+                              : "LOADING"}
+                          </div>
+                          <div className="absolute top-2 left-2">
+                            <span className="bg-white/10 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-lg animate-pulse">
+                              AI
+                            </span>
+                          </div>
+                          <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0f1115]/90 border border-white/10 shadow-sm">
+                            <span className="text-[10px] font-bold text-white">
+                              AI
+                            </span>
+                          </div>
+                          <div className="absolute bottom-0 inset-x-0 p-3">
+                            <div className="w-3/4 h-3 bg-white/10 rounded mb-2 animate-pulse" />
+                            <div className="w-1/2 h-2 bg-white/5 rounded animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-[#0f1115]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                            <Sparkles className="w-4 h-4 text-black" />
+                          </div>
+                        </div>
+                      </div>
                     )
                   )}
                 </div>
-              </AnimatePresence>
+              ) : recommendations.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="mb-2">
+                    No recommendations yet. Watch some content to get
+                    personalized suggestions!
+                  </p>
+                </div>
+              ) : (
+                <motion.div
+                  layout
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-5 lg:pb-16"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {(showAllRecommended
+                      ? recommendations.slice(0, 8)
+                      : recommendations.slice(0, 4)
+                    ).map((item, index) => (
+                      <motion.div
+                        key={`${item.tmdb_id}-${index}`}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
+                        <RecommendationCard
+                          item={item}
+                          onClick={() =>
+                            router.push(
+                              item.media_type === "movie"
+                                ? `/details/movie/${item.tmdb_id}`
+                                : `/details/tvshow/${item.tmdb_id}`
+                            )
+                          }
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
             </section>
           </div>
         </div>

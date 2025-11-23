@@ -2,12 +2,111 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { decryptApiKey } from "@/src/lib/encryption";
 
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+
+interface GeminiRecommendation {
+  title: string;
+  type: "movie" | "tv" | "anime";
+  reason: string;
+  genre: string;
+}
+
+interface TMDBSearchResult {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  vote_average: number;
+  release_date?: string;
+  first_air_date?: string;
+  media_type?: string;
+  number_of_seasons?: number;
+}
+
+interface ProcessedRecommendation {
+  tmdb_id: number;
+  title: string;
+  media_type: "movie" | "tv";
+  poster_path: string | null;
+  backdrop_path: string | null;
+  vote_average: number;
+  release_date: string | null;
+  number_of_seasons: number | null;
+  reason: string;
+  genre: string;
+}
+
+/**
+ * Search TMDB for a title and return the best match with full details
+ */
+async function searchTMDB(
+  title: string,
+  type: "movie" | "tv" | "anime"
+): Promise<TMDBSearchResult | null> {
+  try {
+    // For anime, search TV shows
+    const searchType = type === "anime" ? "tv" : type;
+    const url = `https://api.themoviedb.org/3/search/${searchType}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
+      title
+    )}&page=1`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(
+        `❌ [TMDB Search] Failed for "${title}": ${response.status}`
+      );
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) {
+      console.warn(`⚠️  [TMDB Search] No results found for "${title}"`);
+      return null;
+    }
+
+    const result = data.results[0];
+
+    // For TV shows, fetch full details to get number of seasons
+    if (searchType === "tv") {
+      try {
+        const detailsUrl = `https://api.themoviedb.org/3/tv/${result.id}?api_key=${TMDB_API_KEY}`;
+        const detailsResponse = await fetch(detailsUrl);
+
+        if (detailsResponse.ok) {
+          const details = await detailsResponse.json();
+          result.number_of_seasons = details.number_of_seasons;
+          console.log(
+            `✅ [TMDB Search] Found "${title}": ID ${result.id} (${details.number_of_seasons} seasons)`
+          );
+        } else {
+          console.log(`✅ [TMDB Search] Found "${title}": ID ${result.id}`);
+        }
+      } catch (error) {
+        console.warn(
+          `⚠️  [TMDB Search] Failed to fetch details for "${title}"`
+        );
+        console.log(`✅ [TMDB Search] Found "${title}": ID ${result.id}`);
+      }
+    } else {
+      console.log(`✅ [TMDB Search] Found "${title}": ID ${result.id}`);
+    }
+
+    return result;
+  } catch (error) {
+    console.error(
+      `❌ [TMDB Search] Error searching for "${title}":`,
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    return null;
+  }
+}
+
 /**
  * GET /api/gemini/recommendations
- * Generate personalized movie/TV recommendations using Gemini API
+ * Generate personalized movie/TV/anime recommendations using Gemini AI + TMDB
  *
- * Security: Decrypts API key server-side only, never exposes it to client
- * The decrypted key is used only for the Gemini API call and immediately discarded
+ * Returns: 2 movies, 2 TV shows, 2 anime recommendations
  */
 export async function GET(req: Request) {
   console.log("📥 [Gemini Recommendations] GET request received");
@@ -74,10 +173,10 @@ export async function GET(req: Request) {
     // 2. Fetch watch history
     const { data: watchHistory, error: historyError } = await supabase
       .from("watch_history")
-      .select("tmdb_id, title, media_type, duration_sec, episode_length")
+      .select("title, media_type")
       .eq("user_id", user.id)
       .order("watched_at", { ascending: false })
-      .limit(20);
+      .limit(15);
 
     if (historyError) {
       console.error(
@@ -89,7 +188,7 @@ export async function GET(req: Request) {
     // 3. Fetch watchlist
     const { data: watchlist, error: watchlistError } = await supabase
       .from("watchlist")
-      .select("tmdb_id, title, media_type")
+      .select("title, media_type")
       .eq("user_id", user.id)
       .order("added_at", { ascending: false })
       .limit(10);
@@ -107,7 +206,7 @@ export async function GET(req: Request) {
       } watched, ${watchlist?.length || 0} in watchlist`
     );
 
-    // 4. Decrypt API key (in-memory only, scoped to this block)
+    // 4. Decrypt API key (in-memory only)
     let geminiApiKey: string;
     try {
       geminiApiKey = decryptApiKey(
@@ -141,38 +240,53 @@ export async function GET(req: Request) {
         ?.map((item) => `${item.title} (${item.media_type})`)
         .join(", ") || "None";
 
-    const prompt = `You are a movie and TV show recommendation expert. Based on the user's viewing history and watchlist, suggest 5 personalized recommendations.
+    const prompt = `You are an elite cinematic curator and recommendation engine, capable of deep psychographic analysis of media consumption. Your goal is to provide highly personalized, non-generic recommendations by analyzing the "DNA" (pacing, tone, visual style, narrative complexity) of the user's viewing history and watchlist.
 
-**User's Watch History (most recent):**
-${watchedTitles}
+**INPUT DATA:**
+User Watch History: ${watchedTitles}
+User Watchlist: ${watchlistTitles}
 
-**User's Watchlist:**
-${watchlistTitles}
+**ANALYSIS PROTOCOL:**
+1. **Pattern Recognition:** Identify distinct clusters in the user's taste (e.g., "Dark Psychological Thrillers," "Feel-good Slice of Life," "Hard Scifi").
+2. **Bridge Strategy:** Do not just match genres. Match *elements*. If they watched "Inception," don't just recommend "Sci-Fi"; recommend movies with "unreliable narrators" or "dream logic."
+3. **Novelty vs. Comfort:** Balance high-fidelity matches (very similar to history) with high-quality adjacencies (expanding their horizon).
 
-Please provide 5 movie or TV show recommendations that match the user's taste. For each recommendation, provide:
-1. Title
-2. Type (movie or tv)
-3. Brief reason why this matches their interests (1 sentence)
-4. Genre
+**CATEGORY DEFINITIONS (STRICT):**
+- **Movie:** Feature-length films (Live action or animated).
+- **TV:** Live-action series or Western animation (e.g., Arcane, Rick and Morty). NOT Anime.
+- **Anime:** Strictly Japanese animation series (Ovas/Series).
 
-Format your response as a JSON array with this structure:
+**OUTPUT REQUIREMENTS:**
+Generate EXACTLY 12 recommendations divided strictly as follows:
+- 4 Movies
+- 4 Regular TV Shows
+- 4 Anime TV Shows
+
+**FORMATTING RULES:**
+- **Title:** Must match the official TMDB/IMDb listing.
+- **Reason:** Must be hyper-specific and relatable. Avoid generic phrases like "Since you like action." Instead, use: "Since you enjoyed the slow-burn tension of [Insert Watched Title], you will love the atmospheric dread in this."
+- **Genre:** Primary 2-3 genres.
+- Return ONLY the JSON array with exactly 12 items (4 movies, 4 tv shows, 4 anime), no additional text.
+
+**JSON STRUCTURE:**
 [
   {
-    "title": "Example Movie",
+    "title": "String",
     "type": "movie",
-    "reason": "Based on your interest in...",
-    "genre": "Action, Thriller"
-  }
+    "reason": "String (Specific connection to user's history)",
+    "genre": "String"
+  },
+  ... (repeat for all 12 items)
 ]
 
-Return ONLY the JSON array, no additional text.`;
+Return ONLY the JSON array with exactly 12 items (4 movies, 4 tv shows, 4 anime), no additional text.`;
 
     console.log(`🤖 [Gemini Recommendations] Calling Gemini API...`);
 
-    // 6. Call Gemini API (key used here and immediately discarded after)
+    // 6. Call Gemini API
     try {
       const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
         {
           method: "POST",
           headers: {
@@ -181,15 +295,11 @@ Return ONLY the JSON array, no additional text.`;
           body: JSON.stringify({
             contents: [
               {
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
+                parts: [{ text: prompt }],
               },
             ],
             generationConfig: {
-              temperature: 0.7,
+              temperature: 0.8,
               topK: 40,
               topP: 0.95,
               maxOutputTokens: 2048,
@@ -227,72 +337,93 @@ Return ONLY the JSON array, no additional text.`;
       }
 
       const geminiData = await geminiResponse.json();
+      console.log(`✅ [Gemini Recommendations] Gemini API call successful`);
 
-      console.log(`✅ [Gemini Recommendations] API call successful`);
+      // 7. Parse Gemini response
+      const generatedText =
+        geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-      // 7. Parse and return recommendations
-      try {
-        const generatedText =
-          geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-        // Extract JSON from response (may have markdown code blocks)
-        const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) {
-          throw new Error("No JSON array found in response");
-        }
-
-        const recommendations = JSON.parse(jsonMatch[0]);
-
-        console.log(
-          `🎬 [Gemini Recommendations] Parsed ${recommendations.length} recommendations`
-        );
-
-        return NextResponse.json(
-          {
-            success: true,
-            recommendations,
-            generatedAt: new Date().toISOString(),
-          },
-          { status: 200 }
-        );
-      } catch (parseError) {
-        console.error(
-          `❌ [Gemini Recommendations] Failed to parse response: ${
-            parseError instanceof Error ? parseError.message : "Unknown error"
-          }`
-        );
-
-        // Return raw text as fallback
-        return NextResponse.json(
-          {
-            success: true,
-            recommendations: [],
-            rawResponse:
-              geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "",
-            generatedAt: new Date().toISOString(),
-          },
-          { status: 200 }
-        );
+      // Extract JSON from response (may have markdown code blocks)
+      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error("No JSON array found in Gemini response");
       }
+
+      const geminiRecommendations: GeminiRecommendation[] = JSON.parse(
+        jsonMatch[0]
+      );
+
+      console.log(
+        `🎬 [Gemini Recommendations] Parsed ${geminiRecommendations.length} recommendations from Gemini`
+      );
+
+      // 8. Fetch TMDB data for each recommendation
+      const processedRecommendations: ProcessedRecommendation[] = [];
+
+      for (const rec of geminiRecommendations) {
+        console.log(
+          `🔍 [Gemini Recommendations] Searching TMDB for: ${rec.title} (${rec.type})`
+        );
+
+        const tmdbResult = await searchTMDB(rec.title, rec.type);
+
+        if (tmdbResult) {
+          processedRecommendations.push({
+            tmdb_id: tmdbResult.id,
+            title: tmdbResult.title || tmdbResult.name || rec.title,
+            media_type: rec.type === "anime" ? "tv" : rec.type,
+            poster_path: tmdbResult.poster_path,
+            backdrop_path: tmdbResult.backdrop_path,
+            vote_average: tmdbResult.vote_average,
+            release_date:
+              tmdbResult.release_date || tmdbResult.first_air_date || null,
+            number_of_seasons: tmdbResult.number_of_seasons || null,
+            reason: rec.reason,
+            genre: rec.genre,
+          });
+        } else {
+          console.warn(
+            `⚠️  [Gemini Recommendations] Skipping "${rec.title}" (no TMDB match)`
+          );
+        }
+      }
+
+      console.log(
+        `✅ [Gemini Recommendations] Successfully processed ${processedRecommendations.length} recommendations with TMDB data`
+      );
+
+      return NextResponse.json(
+        {
+          success: true,
+          recommendations: processedRecommendations,
+          generatedAt: new Date().toISOString(),
+        },
+        { status: 200 }
+      );
     } catch (apiError) {
       console.error(
-        `❌ [Gemini Recommendations] API call failed: ${
+        `❌ [Gemini Recommendations] Error: ${
           apiError instanceof Error ? apiError.message : "Unknown error"
         }`
       );
+      console.error(`🔥 [Gemini Recommendations] Full error:`, apiError);
 
       // Ensure key is cleared even if error occurs
       geminiApiKey = "";
 
       return NextResponse.json(
-        { error: "Failed to connect to Gemini API. Please try again later." },
+        {
+          error: "Failed to generate recommendations. Please try again later.",
+          debug: apiError instanceof Error ? apiError.message : "Unknown error",
+        },
         { status: 500 }
       );
     }
   } catch (err: any) {
     console.error("🔥 [Gemini Recommendations] Critical error:", err.message);
+    console.error("🔥 [Gemini Recommendations] Stack:", err.stack);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error", debug: err.message },
       { status: 500 }
     );
   }
