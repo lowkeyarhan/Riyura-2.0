@@ -572,7 +572,6 @@ export default function ProfilePage() {
   const fetchingRef = useRef(false);
   const apiKeyFetchingRef = useRef(false);
   const recommendationsFetchingRef = useRef(false);
-  const recommendationsDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Gemini API Key state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -806,81 +805,26 @@ export default function ProfilePage() {
     [user, hasApiKey]
   );
 
-  // Initial Fetch Effect
+  // Initial Load (Cache Only)
   useEffect(() => {
-    if (!user || !hasApiKey || isLoadingApiKey) return;
+    if (!user) return;
 
-    // Only fetch if not already loaded and not fetching
-    if (recommendations.length === 0 && !recommendationsFetchingRef.current) {
-      fetchRecommendations(false);
-    }
-  }, [
-    user,
-    hasApiKey,
-    isLoadingApiKey,
-    fetchRecommendations,
-    recommendations.length,
-  ]);
+    const loadFromCache = () => {
+      const cacheKey = getCacheKey(user.id, CACHE_KEYS.RECOMMENDATIONS);
+      const cached = getCachedData(cacheKey, RECOMMENDATIONS_CACHE_DURATION);
 
-  // Refs to track previous lengths for change detection
-  const prevWatchlistLengthRef = useRef<number | null>(null);
-  const prevHistoryLengthRef = useRef<number | null>(null);
-
-  // Auto-refresh recommendations when watchlist/history changes (with 3s debounce)
-  useEffect(() => {
-    if (!user || !hasApiKey || isLoadingApiKey || !dataInitialized) return;
-
-    const currentWatchlistLen = watchlist.length;
-    const currentHistoryLen = continueWatching.length;
-
-    // Initialize refs on first valid run
-    if (prevWatchlistLengthRef.current === null) {
-      prevWatchlistLengthRef.current = currentWatchlistLen;
-      prevHistoryLengthRef.current = currentHistoryLen;
-      return;
-    }
-
-    // Check if data actually changed
-    const hasChanged =
-      currentWatchlistLen !== prevWatchlistLengthRef.current ||
-      currentHistoryLen !== prevHistoryLengthRef.current;
-
-    if (!hasChanged) return;
-
-    // Update refs
-    prevWatchlistLengthRef.current = currentWatchlistLen;
-    prevHistoryLengthRef.current = currentHistoryLen;
-
-    // Clear existing debounce timer
-    if (recommendationsDebounceRef.current) {
-      clearTimeout(recommendationsDebounceRef.current);
-    }
-
-    // Set new debounce timer (3 seconds)
-    console.log(
-      `⏱️  [Recommendations] Data changed (Watchlist: ${currentWatchlistLen}, History: ${currentHistoryLen}). Refresh in 3s...`
-    );
-
-    recommendationsDebounceRef.current = setTimeout(() => {
-      console.log(`🔄 [Recommendations] Auto-refresh triggered by data change`);
-      fetchRecommendations(true); // Force refresh
-    }, 3000);
-
-    // Cleanup on unmount
-    return () => {
-      if (recommendationsDebounceRef.current) {
-        clearTimeout(recommendationsDebounceRef.current);
+      if (cached) {
+        console.log(`✅ [Recommendations] Loaded ${cached.length} from cache`);
+        setRecommendations(cached);
+      } else {
+        console.log(
+          `ℹ️ [Recommendations] No cache found. Waiting for manual refresh or API key.`
+        );
       }
     };
-  }, [
-    user,
-    hasApiKey,
-    isLoadingApiKey,
-    dataInitialized,
-    continueWatching.length,
-    watchlist.length,
-    fetchRecommendations,
-  ]);
+
+    loadFromCache();
+  }, [user]);
 
   // Expose refresh function for manual refresh
   const refreshRecommendations = useCallback(async () => {
@@ -925,6 +869,12 @@ export default function ProfilePage() {
           });
 
           console.log(`✅ [API Key] API key saved successfully`);
+
+          // Trigger initial recommendation fetch
+          console.log(
+            `🚀 [Recommendations] Triggering initial fetch after API key save`
+          );
+          fetchRecommendations(true);
         } else {
           const error = await res.json();
           console.error(`❌ [API Key] Failed to save:`, error.error);

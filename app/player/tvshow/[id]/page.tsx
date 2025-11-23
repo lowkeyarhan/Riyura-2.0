@@ -20,6 +20,7 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/supabase";
+import { invalidateProfileCache } from "@/src/lib/database";
 import LoadingDots from "@/src/components/LoadingDots";
 
 // --- Constants ---
@@ -269,8 +270,7 @@ export default function TVShowPlayer() {
           keepalive: true,
         }).then(() => {
           // Invalidate profile cache so it refreshes on next visit
-          sessionStorage.removeItem("profile_watch_history");
-          sessionStorage.removeItem("profile_stats");
+          invalidateProfileCache(user.id);
         });
       });
     };

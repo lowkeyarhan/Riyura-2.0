@@ -102,14 +102,13 @@ export async function ensureUserProfile(user: {
 }
 
 // Cache Invalidation Helper
-const invalidateProfileCache = (userId: string) => {
+export const invalidateProfileCache = (userId: string) => {
   if (typeof window === "undefined") return;
 
   const keys = [
     `profile_watchlist_${userId}`,
     `profile_watch_history_${userId}`,
     `profile_stats_${userId}`,
-    `profile_recommendations_${userId}`,
   ];
 
   keys.forEach((key) => {
