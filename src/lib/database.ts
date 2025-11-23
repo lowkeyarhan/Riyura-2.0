@@ -58,7 +58,7 @@ type WatchHistoryPayload = {
   duration_sec: number | null;
 };
 
-// Profile Functions --------------------------------------------------------
+// Profile Functions ----
 export async function ensureUserProfile(user: {
   uid: string;
   email: string;
@@ -117,8 +117,6 @@ const invalidateProfileCache = (userId: string) => {
   });
   console.log(`🗑️ [Cache] Invalidated profile cache for user: ${userId}`);
 };
-
-// Watchlist Functions ------------------------------------------------------
 
 // Add a movie or TV show to watchlist
 export async function addToWatchlist(userId: string, item: WatchlistPayload) {
@@ -253,8 +251,6 @@ export async function getWatchlistByType(
   );
   return data || [];
 }
-
-// Watch History Functions --------------------------------------------------
 
 // Add to watch history
 export async function addToWatchHistory(

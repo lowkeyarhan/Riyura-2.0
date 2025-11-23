@@ -2,79 +2,62 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
   encryptApiKey,
-  decryptApiKey,
   getKeyPreview,
   isValidGeminiApiKeyFormat,
 } from "@/src/lib/encryption";
 
 /**
+ * Handles Supabase authentication and client initialization
+ * Returns the client and user, or null if unauthorized
+ */
+async function getAuthenticatedUser(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return null;
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user ? { supabase, user } : null;
+}
+
+/**
  * GET /api/gemini
- * Fetch API key status (whether key exists and preview)
- *
- * Security: Returns only key existence and masked preview, NEVER the full key
+ * Returns key preview if it exists
  */
 export async function GET(req: Request) {
-  console.log("📥 [Gemini API] GET request received");
-
   try {
-    // Authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.warn("⚠️  [Gemini API] Unauthorized: Missing or invalid token");
-      return NextResponse.json(
-        { error: "Missing or Invalid Token" },
-        { status: 401 }
-      );
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.warn("⚠️  [Gemini API] Unauthorized: Invalid user");
+    const auth = await getAuthenticatedUser(req);
+    if (!auth)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    console.log(`🔍 [Gemini API] Fetching key status for user: ${user.id}`);
+    const { supabase, user } = auth;
+    console.log(`🔍 [Gemini API] Fetching status for user: ${user.id}`);
 
-    // Fetch key data (only metadata, not decrypted key)
     const { data, error } = await supabase
       .from("gemini_api_keys")
       .select("key_preview, created_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (error) {
-      console.error(`❌ [Gemini API] Database error: ${error.message}`);
-      throw error;
-    }
+    if (error) throw error;
 
     if (!data) {
-      console.log(`ℹ️  [Gemini API] No API key found for user: ${user.id}`);
-      return NextResponse.json(
-        { hasKey: false, keyPreview: null },
-        { status: 200 }
-      );
+      return NextResponse.json({ hasKey: false, keyPreview: null });
     }
 
-    console.log(`✅ [Gemini API] Key found for user: ${user.id}`);
-    return NextResponse.json(
-      {
-        hasKey: true,
-        keyPreview: data.key_preview,
-        createdAt: data.created_at,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      hasKey: true,
+      keyPreview: data.key_preview,
+      createdAt: data.created_at,
+    });
   } catch (err: any) {
-    console.error("🔥 [Gemini API] Critical error in GET:", err.message);
+    console.error("🔥 [Gemini API] GET Error:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -84,72 +67,36 @@ export async function GET(req: Request) {
 
 /**
  * POST /api/gemini
- * Store or update encrypted Gemini API key
- *
- * Security: Encrypts key using AES-256-GCM before storage
+ * Encrypts and Upserts the API Key
  */
 export async function POST(req: Request) {
-  console.log("📥 [Gemini API] POST request received");
-
   try {
-    // Authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.warn("⚠️  [Gemini API] Unauthorized: Missing or invalid token");
-      return NextResponse.json(
-        { error: "Missing or Invalid Token" },
-        { status: 401 }
-      );
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.warn("⚠️  [Gemini API] Unauthorized: Invalid user");
+    const auth = await getAuthenticatedUser(req);
+    if (!auth)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    // Parse request body
+    const { supabase, user } = auth;
     const body = await req.json();
-    const { apiKey } = body;
 
-    if (!apiKey || typeof apiKey !== "string") {
-      console.warn("⚠️  [Gemini API] Invalid request: Missing API key");
+    // 1. Validation
+    if (!body.apiKey)
       return NextResponse.json(
         { error: "API key is required" },
         { status: 400 }
       );
-    }
-
-    // Validate API key format
-    if (!isValidGeminiApiKeyFormat(apiKey)) {
-      console.warn("⚠️  [Gemini API] Invalid API key format");
+    if (!isValidGeminiApiKeyFormat(body.apiKey)) {
       return NextResponse.json(
-        {
-          error:
-            "Invalid Gemini API key format. Key should start with 'AIza' and be 20-100 characters.",
-        },
+        { error: "Invalid API key format. Must start with 'AIza'." },
         { status: 400 }
       );
     }
 
-    console.log(`🔐 [Gemini API] Encrypting API key for user: ${user.id}`);
+    // 2. Encryption
+    console.log(`🔐 [Gemini API] Encrypting key for user: ${user.id}`);
+    const { encryptedKey, iv, authTag } = encryptApiKey(body.apiKey);
+    const keyPreview = getKeyPreview(body.apiKey);
 
-    // Encrypt the API key
-    const { encryptedKey, iv, authTag } = encryptApiKey(apiKey);
-    const keyPreview = getKeyPreview(apiKey);
-
-    console.log(`💾 [Gemini API] Storing encrypted key for user: ${user.id}`);
-
-    // Check if key already exists
+    // 3. Check for existing key to determine operation (Update vs Insert)
     const { data: existing } = await supabase
       .from("gemini_api_keys")
       .select("id")
@@ -157,56 +104,41 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     let result;
+    const payload = {
+      user_id: user.id,
+      encrypted_key: encryptedKey,
+      iv,
+      auth_tag: authTag,
+      key_preview: keyPreview,
+      updated_at: new Date().toISOString(),
+    };
 
     if (existing) {
-      // Update existing key
-      console.log(`📝 [Gemini API] Updating existing key (ID: ${existing.id})`);
+      console.log(`📝 [Gemini API] Updating existing key ID: ${existing.id}`);
       result = await supabase
         .from("gemini_api_keys")
-        .update({
-          encrypted_key: encryptedKey,
-          iv: iv,
-          auth_tag: authTag,
-          key_preview: keyPreview,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq("id", existing.id)
-        .select("key_preview, updated_at")
+        .select("key_preview")
         .single();
     } else {
-      // Insert new key
-      console.log(`✨ [Gemini API] Creating new key entry`);
+      console.log(`✨ [Gemini API] Inserting new key`);
       result = await supabase
         .from("gemini_api_keys")
-        .insert({
-          user_id: user.id,
-          encrypted_key: encryptedKey,
-          iv: iv,
-          auth_tag: authTag,
-          key_preview: keyPreview,
-        })
-        .select("key_preview, created_at")
+        .insert(payload)
+        .select("key_preview")
         .single();
     }
 
-    if (result.error) {
-      console.error(`❌ [Gemini API] Database error: ${result.error.message}`);
-      throw result.error;
-    }
+    if (result.error) throw result.error;
 
-    console.log(
-      `✅ [Gemini API] Successfully saved API key for user: ${user.id}`
-    );
-    return NextResponse.json(
-      {
-        success: true,
-        keyPreview: result.data.key_preview,
-        message: "API key saved successfully",
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      keyPreview: result.data.key_preview,
+      message: "API key saved successfully",
+    });
   } catch (err: any) {
-    console.error("🔥 [Gemini API] Critical error in POST:", err.message);
+    console.error("🔥 [Gemini API] POST Error:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -216,61 +148,30 @@ export async function POST(req: Request) {
 
 /**
  * DELETE /api/gemini
- * Delete user's Gemini API key
- *
- * Security: Permanently removes encrypted key from database
+ * Removes the key from the database
  */
 export async function DELETE(req: Request) {
-  console.log("📥 [Gemini API] DELETE request received");
-
   try {
-    // Authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.warn("⚠️  [Gemini API] Unauthorized: Missing or invalid token");
-      return NextResponse.json(
-        { error: "Missing or Invalid Token" },
-        { status: 401 }
-      );
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.warn("⚠️  [Gemini API] Unauthorized: Invalid user");
+    const auth = await getAuthenticatedUser(req);
+    if (!auth)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    console.log(`🗑️  [Gemini API] Deleting API key for user: ${user.id}`);
+    const { supabase, user } = auth;
+    console.log(`🗑️  [Gemini API] Deleting key for user: ${user.id}`);
 
-    // Delete the key
     const { error } = await supabase
       .from("gemini_api_keys")
       .delete()
       .eq("user_id", user.id);
 
-    if (error) {
-      console.error(`❌ [Gemini API] Database error: ${error.message}`);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log(
-      `✅ [Gemini API] Successfully deleted API key for user: ${user.id}`
-    );
-    return NextResponse.json(
-      { success: true, message: "API key deleted successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: "API key deleted successfully",
+    });
   } catch (err: any) {
-    console.error("🔥 [Gemini API] Critical error in DELETE:", err.message);
+    console.error("🔥 [Gemini API] DELETE Error:", err.message);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
