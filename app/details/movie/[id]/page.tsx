@@ -198,7 +198,24 @@ export default function MovieDetails() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: BG_COLOR }}>
+    <div className="min-h-screen">
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-black" />
+
+        {/* Mobile Background */}
+        <div className="block md:hidden">
+          {/* <div className="absolute -top-[10%] -left-[10%] w-[160vw] h-[160vw] rounded-full bg-[#155f75b5] blur-[120px] opacity-40" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[160vw] h-[160vw] rounded-full bg-[#9a341299] blur-[120px] opacity-30 mix-blend-screen" /> */}
+        </div>
+
+        {/* Desktop Background */}
+        <div className="hidden md:block">
+          <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f7575] blur-[130px] opacity-40" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341264] blur-[130px] opacity-30 mix-blend-screen" />
+        </div>
+
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
+      </div>
       {showTrailer && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95">
           <div className="relative w-[90%] max-w-[1200px] aspect-video">
@@ -219,8 +236,17 @@ export default function MovieDetails() {
         </div>
       )}
 
-      <div className="relative h-[70vh] min-h-[500px] overflow-hidden">
-        <div className="absolute inset-0">
+      {/* HERO CONTENT */}
+      <div className="relative z-10 h-[70vh] min-h-[500px] overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            maskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%)",
+          }}
+        >
           <Image
             src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`}
             alt={movie.title}
@@ -229,108 +255,86 @@ export default function MovieDetails() {
             priority
           />
         </div>
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative h-full flex flex-col justify-end px-8 md:px-16 lg:px-20 pb-12">
+        <div className="relative h-full flex flex-col justify-end px-4 md:px-16 lg:px-20 md:pb-12">
           <div className="max-w-3xl">
             <h1
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white"
+              className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 text-white"
               style={{ fontFamily: FONT }}
             >
               {movie.title}
             </h1>
-            <div
-              className="flex items-center gap-4 mb-4 text-gray-200"
-              style={{ fontFamily: FONT }}
-            >
-              <span>•</span>
-              <span className="font-semibold">
-                {movie.vote_average?.toFixed(1) || "N/A"}/10
-              </span>
-              <span>•</span>
-              <span>{formatRuntime(movie.runtime)}</span>
-            </div>
             {movie.tagline && (
               <p
-                className="text-lg text-gray-300 italic mb-6"
+                className="text-base md:text-lg text-gray-300 italic mb-6"
                 style={{ fontFamily: FONT }}
               >
                 {movie.tagline}
               </p>
             )}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setShowTrailer(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full transition font-semibold"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white rounded-full transition font-semibold text-sm md:text-base whitespace-nowrap"
                 style={{ fontFamily: FONT }}
               >
-                <Play className="w-5 h-5" fill="currentColor" />
-                Watch Trailer
+                <Play className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                Trailer
               </button>
               <button
                 onClick={() => router.push(`/player/movie/${movie.id}`)}
-                className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition font-semibold"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-[#3a404f60] hover:bg-white/20 text-white rounded-full transition font-semibold text-sm md:text-base whitespace-nowrap"
                 style={{ fontFamily: FONT }}
               >
-                <Play className="w-5 h-5" fill="currentColor" />
-                Watch Now
+                <Play className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                Movie
               </button>
-              <button
-                onClick={() => setIsFavorited(!isFavorited)}
-                className={`p-3 rounded-full transition ${
-                  isFavorited
-                    ? "bg-red-600 text-white"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                }`}
-              >
-                <Heart
-                  className="w-5 h-5"
-                  fill={isFavorited ? "currentColor" : "none"}
-                />
-              </button>
-              <button
-                onClick={toggleWatchlist}
-                className={`p-3 rounded-full transition ${
-                  isWatchlisted
-                    ? "bg-red-600 text-white"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                }`}
-              >
-                <Bookmark
-                  className="w-5 h-5"
-                  fill={isWatchlisted ? "currentColor" : "none"}
-                />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleWatchlist}
+                  className={`p-3 rounded-full transition ${
+                    isWatchlisted
+                      ? "bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
+                >
+                  <Bookmark
+                    className="w-4 h-4 md:w-5 md:h-5"
+                    fill={isWatchlisted ? "currentColor" : "none"}
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div
-        className="px-8 md:px-16 py-16 space-y-8"
-        style={{ backgroundColor: BG_COLOR }}
-      >
+      <div className="relative z-10 px-4 md:px-16 py-8 md:py-16 space-y-8">
         <section className="space-y-6">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02]">
+            <div className="p-4 bg-[#3a404f60] md:bg-[#1518215f] border border-white/5 rounded-2xl">
               <h2
-                className="text-4xl font-semibold text-white mb-6"
+                className="text-2xl md:text-4xl font-semibold text-white mb-4 md:mb-6"
                 style={{ fontFamily: FONT }}
               >
                 Overview
               </h2>
               <p
-                className="text-white/70 leading-relaxed"
+                className="text-white/70 leading-relaxed text-sm md:text-base"
                 style={{ fontFamily: FONT }}
               >
                 {movie.overview}
               </p>
             </div>
-            <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] space-y-4">
+            <div className="p-4 bg-[#3a404f60] md:bg-[#1518215f] border border-white/5 rounded-2xl space-y-4">
               <InfoRow
                 label="Release Date"
                 value={formatDate(movie.release_date)}
               />
               <InfoRow label="Runtime" value={formatRuntime(movie.runtime)} />
+              <InfoRow
+                label="IMDb Rating"
+                value={movie.vote_average?.toFixed(1) || "N/A"}
+              />
               {movie.production_companies?.length > 0 && (
                 <InfoRow
                   label="Production"
@@ -366,14 +370,51 @@ export default function MovieDetails() {
           </div>
         </section>
 
-        <section className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02]">
+        <section className="p-4 bg-[#3a404f60] md:bg-[#1518215f] border border-white/5 rounded-2xl">
           <h2
-            className="text-4xl font-semibold text-white mb-6"
+            className="text-2xl md:text-4xl font-semibold text-white mb-6"
             style={{ fontFamily: FONT }}
           >
             Cast
           </h2>
-          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+          {/* Mobile View: Vertical List */}
+          <div className="md:hidden space-y-4">
+            {movie.credits?.cast?.slice(0, 12).map((person) => (
+              <div key={person.id} className="flex items-center gap-4">
+                <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+                  {person.profile_path ? (
+                    <Image
+                      src={`https://image.tmdb.org/t/p/w200${person.profile_path}`}
+                      alt={person.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs text-gray-500">
+                      N/A
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p
+                    className="text-white font-semibold"
+                    style={{ fontFamily: FONT }}
+                  >
+                    {person.name}
+                  </p>
+                  <p
+                    className="text-white/60 text-sm"
+                    style={{ fontFamily: FONT }}
+                  >
+                    {person.character}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop View: Horizontal Scroll */}
+          <div className="hidden md:block overflow-x-auto scrollbar-hide -mx-4 px-4">
             <div className="flex gap-6">
               {movie.credits?.cast?.slice(0, 12).map((person) => (
                 <div key={person.id} className="flex-shrink-0 w-[180px]">
@@ -415,16 +456,17 @@ export default function MovieDetails() {
         {movie.similar?.results?.length > 0 && (
           <section>
             <h2
-              className="text-4xl font-semibold mb-8 text-white"
+              className="text-2xl md:text-4xl font-semibold mb-6 md:mb-8 text-white"
               style={{ fontFamily: FONT }}
             >
               More Like This
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {/* Mobile: Horizontal Scroll */}
+            <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
               {movie.similar.results.slice(0, 5).map((similar) => (
                 <div
                   key={similar.id}
-                  className="group relative cursor-pointer rounded-2xl overflow-hidden"
+                  className="group relative cursor-pointer rounded-2xl overflow-hidden flex-shrink-0 w-[140px] md:w-auto"
                   onClick={() => router.push(`/details/movie/${similar.id}`)}
                 >
                   <div className="relative aspect-[2/3]">
@@ -432,7 +474,7 @@ export default function MovieDetails() {
                       src={`https://image.tmdb.org/t/p/w500${similar.poster_path}`}
                       alt={similar.title}
                       fill
-                      sizes="(max-width: 640px) 150px, (max-width: 1024px) 180px, 200px"
+                      sizes="(max-width: 768px) 140px, (max-width: 1024px) 180px, 200px"
                       className="object-cover group-hover:brightness-50 transition-all duration-300"
                     />
                   </div>
@@ -469,15 +511,15 @@ export default function MovieDetails() {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <span
-          className="text-white/60"
+          className="text-white/60 flex-shrink-0"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
           {label}
         </span>
         <span
-          className="text-white"
+          className="text-white text-right"
           style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
         >
           {value}

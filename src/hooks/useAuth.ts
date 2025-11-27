@@ -37,5 +37,9 @@ export function useAuth() {
   const avatarUrl =
     user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
-  return { user, loading, firstName, avatarUrl } as const;
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  return { user, loading, firstName, avatarUrl, signOut } as const;
 }

@@ -1,25 +1,66 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import "../globals.css";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  PanelLeft,
+  ChevronRight,
+  LogOut,
+  Home,
+  Shield,
+  Clock,
+  Info,
+} from "lucide-react";
 
 export default function LandingPage() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleMenu = () => setIsOpen(!isOpen);
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setIsOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-linear-to-b from-black/80 to-transparent">
-        <div className="mx-40 px-4 py-4 flex items-center justify-between">
+        <div className="md:mx-40 px-4 py-4 flex items-center justify-between">
+          {/* Mobile Menu Button */}
+
           <div className="flex items-center gap-3">
+            <Image
+              src="/logo.png"
+              alt="Riyura Logo"
+              width={35}
+              height={35}
+              className="md:hidden object-contain"
+            />
             <Image
               src="/logo.png"
               alt="Riyura Logo"
               width={60}
               height={60}
-              className="object-contain"
+              className="hidden md:block object-contain"
             />
             <span
-              className="text-2xl font-bold tracking-wider"
+              className="text-xl md:text-2xl font-bold tracking-wider"
               style={{ fontFamily: "'Bruno Ace', sans-serif" }}
             >
               RIYURA
@@ -28,44 +69,28 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center justify-between gap-16 text-sm uppercase tracking-wider text-gray-300">
             <button
-              onClick={() =>
-                document
-                  .getElementById("features")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => scrollToSection("features")}
               className="hover:text-white transition-colors cursor-pointer"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               F E A T U R E S
             </button>
             <button
-              onClick={() =>
-                document
-                  .getElementById("security")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => scrollToSection("security")}
               className="hover:text-white transition-colors cursor-pointer"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               S E C U R I T Y
             </button>
             <button
-              onClick={() =>
-                document
-                  .getElementById("about")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => scrollToSection("about")}
               className="hover:text-white transition-colors cursor-pointer"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               A B O U T
             </button>
             <button
-              onClick={() =>
-                document
-                  .getElementById("history")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => scrollToSection("history")}
               className="hover:text-white transition-colors cursor-pointer"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
@@ -74,14 +99,14 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Profile Box */}
-            <div className="flex items-center gap-3 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all">
+            {/* Profile Box - Desktop */}
+            <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-lg border border-white/10 cursor-pointer hover:border-white/20 transition-all">
               <span className="text-sm uppercase tracking-wider text-gray-300">
                 U S E R
               </span>
               <div className="w-8 h-8 rounded overflow-hidden relative">
                 <Image
-                  src="/logo.png"
+                  src="/userPhoto.png"
                   alt="Profile"
                   width={32}
                   height={32}
@@ -97,22 +122,64 @@ export default function LandingPage() {
                       "items-center",
                       "justify-center"
                     );
-                    e.currentTarget.parentElement!.innerHTML =
-                      '<span class="text-xs font-bold">K</span>';
+                    e.currentTarget.parentElement!.innerHTML = "U";
                   }}
                 />
               </div>
             </div>
+
+            {/* Profile Box - Mobile */}
+            <motion.div
+              whileTap={{ scale: 0.95 }}
+              className="md:hidden flex items-center backdrop-blur-md gap-1 pl-2 pr-1 py-1 rounded-lg border border-white/10 border-gradient cursor-pointer hover:border-white/20 transition-all"
+            >
+              <span className="text-xs uppercase tracking-wider text-gray-300">
+                USER
+              </span>
+              <div className="w-8 h-8 rounded overflow-hidden flex items-center justify-center relative">
+                <Image
+                  src="/userPhoto.png"
+                  alt="Profile"
+                  width={32}
+                  height={32}
+                  className="object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.parentElement!.classList.add(
+                      "bg-gradient-to-br",
+                      "from-blue-500",
+                      "to-cyan-500",
+                      "flex",
+                      "items-center",
+                      "justify-center"
+                    );
+                    e.currentTarget.parentElement!.innerHTML = "U";
+                  }}
+                />
+              </div>
+            </motion.div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
       <section className="relative isolate min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
+        {/* Background Image - Desktop */}
+        <div className="hidden md:block absolute inset-0 z-0">
           <Image
             src="/landingPage.png"
+            alt="Landing Page Background"
+            fill
+            priority
+            className="object-cover object-center"
+            style={{ filter: "brightness(0.6) contrast(1.1)" }}
+          />
+        </div>
+
+        {/* Background Image - Mobile */}
+        <div className="block md:hidden absolute inset-0 z-0">
+          <Image
+            src="/mobileLandingPage.jpg"
             alt="Landing Page Background"
             fill
             priority
@@ -124,7 +191,7 @@ export default function LandingPage() {
         {/* Hero Headings */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20 pointer-events-none -translate-y-30">
           <h1
-            className="blend text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-3"
+            className="blend text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-3"
             style={{
               fontFamily: "'Bruno Ace', sans-serif",
             }}
@@ -133,7 +200,7 @@ export default function LandingPage() {
           </h1>
 
           <h1
-            className="blend text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white"
+            className="blend text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white"
             style={{
               fontFamily: "'Bruno Ace', sans-serif",
               mixBlendMode: "overlay",
@@ -144,7 +211,7 @@ export default function LandingPage() {
         </div>
 
         {/* Hero Content (buttons and paragraph at the bottom) */}
-        <div className="absolute bottom-0 left-0 w-full flex flex-col items-center justify-end z-20 pb-16">
+        <div className="absolute bottom-0 left-0 w-full flex flex-col items-center justify-end z-20 pb-12 md:pb-16">
           <div className="w-full text-center px-6 z-10 mb-12">
             <p
               className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto font-extralight"
@@ -157,7 +224,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
               href="/auth"
-              className="group relative flex flex-row rounded-full items-center justify-center gap-3 w-auto overflow-hidden h-16 px-12 text-lg font-bold tracking-wider uppercase transition-all duration-300"
+              className="group relative flex flex-row rounded-full items-center justify-center gap-2 md:gap-3 overflow-hidden h-10 md:h-16 px-4 md:px-12 text-sm md:text-lg font-bold tracking-wider uppercase transition-all duration-300"
               style={{ fontFamily: "'Bruno Ace', sans-serif" }}
             >
               {/* Animated gradient background */}

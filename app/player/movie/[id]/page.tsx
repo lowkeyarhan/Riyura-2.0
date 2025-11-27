@@ -197,9 +197,7 @@ export default function MoviePlayer() {
   }, [searchParams, servers]);
 
   // Watch Tracking Logic
-  // Watch Tracking Logic
   useEffect(() => {
-    // Start timer
     console.log("⏱️ [Watch Timer] Started");
     watchTimer.current = setInterval(() => {
       watchDuration.current += 1;
@@ -242,13 +240,6 @@ export default function MoviePlayer() {
       const blob = new Blob([JSON.stringify(watchData)], {
         type: "application/json",
       });
-
-      // We need the token for the API.
-      // Since sendBeacon doesn't support custom headers easily without CORS preflight issues in some cases,
-      // we'll stick to fetch with keepalive which is standard for this.
-      // However, we need to get the session synchronously or have it cached.
-      // Since we can't get it synchronously easily, we'll try to use the existing session if valid.
-
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
         fetch("/api/watch-history", {
@@ -279,7 +270,7 @@ export default function MoviePlayer() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       saveWatchHistory();
     };
-  }, [user?.id, movieId]); // Only re-run if user ID or movie ID changes
+  }, [user?.id, movieId]);
 
   const formatRuntime = (m: number) => `${Math.floor(m / 60)}h ${m % 60}m`;
   const formatMoney = (a: number) =>
@@ -293,7 +284,7 @@ export default function MoviePlayer() {
     );
 
   return (
-    <div className="h-screen w-full bg-black text-white font-sans overflow-hidden flex flex-col">
+    <div className="min-h-screen w-full bg-black text-white font-sans flex flex-col">
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-black" />
         <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
@@ -302,9 +293,9 @@ export default function MoviePlayer() {
       </div>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="relative z-10 flex-1 flex flex-col lg:flex-row pt-20 pb-4 px-4 gap-4 h-full overflow-hidden">
-        {/* --- LEFT: CINEMA PLAYER */}
-        <div className="flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 relative group">
+      <div className="relative z-10 flex-1 flex flex-col lg:flex-row pt-24 lg:pt-20 pb-4 px-4 gap-4 h-auto lg:h-full">
+        {/* --- LEFT: CINEMA PLAYER --- */}
+        <div className="flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 relative group aspect-video lg:aspect-auto">
           {/* The Player */}
           <iframe
             src={servers[activeServerIndex].link}
@@ -316,7 +307,7 @@ export default function MoviePlayer() {
         </div>
 
         {/* --- RIGHT: COMMAND CENTER (Fixed Width sidebar) --- */}
-        <div className="w-full lg:w-[24rem] flex flex-col gap-4 h-full min-h-0">
+        <div className="w-full lg:w-[24rem] flex flex-col gap-4 h-auto lg:h-full lg:min-h-0">
           {/* 1. Info Header Card */}
           <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0">
             <h1
@@ -351,7 +342,7 @@ export default function MoviePlayer() {
           </div>
 
           {/* 2. Server Selector (Flexible Height) */}
-          <div className="flex-1 bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl overflow-hidden flex flex-col min-h-0">
+          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl overflow-hidden flex flex-col min-h-[200px] lg:flex-1 lg:min-h-0">
             <div className="flex items-center gap-2 mb-4 text-gray-400 text-xs font-bold uppercase tracking-widest">
               <Server size={14} />
               <span>Select Source</span>
@@ -371,7 +362,7 @@ export default function MoviePlayer() {
           </div>
 
           {/* 3. Synopsis */}
-          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0 max-h-[800px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0 max-h-none lg:max-h-[800px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
             <div className="flex items-center gap-2 mb-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
               <Info size={14} />
               <span>Synopsis</span>

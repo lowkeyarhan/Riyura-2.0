@@ -68,7 +68,7 @@ const TVIcon = () => (
 const FilterButton = ({ active, onClick, children }: any) => (
   <button
     onClick={onClick}
-    className={`px-6 py-2.5 rounded-full text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${
+    className={`px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-base font-bold uppercase tracking-wider transition-all duration-300 ${
       active
         ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] scale-105"
         : "bg-[#151821] text-gray-400 border border-white/10 hover:border-white/20 hover:text-white hover:bg-white/5"
@@ -129,17 +129,17 @@ const WatchlistCard = ({
           </div>
         )}
 
-        {/* Hover Action Overlay */}
-        <div className="absolute inset-0 bg-[#0f1115]/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 z-20">
+        {/* Hover Action Overlay (Desktop) */}
+        <div className="hidden md:flex absolute inset-0 bg-[#0f1115]/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-center justify-center gap-4 z-20">
           <div className="flex flex-col items-center gap-2 scale-0 group-hover:scale-100 transition-transform duration-300 delay-75">
-            <button
-              className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:scale-110 transition-transform text-black"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              <Play className="w-5 h-5 ml-1 fill-black" />
+            <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:scale-110 transition-transform text-black">
+              <Play
+                className="w-5 h-5 ml-1 fill-black"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick();
+                }}
+              />
             </button>
             <span className="text-xs font-medium text-white tracking-wide">
               Watch
@@ -161,21 +161,41 @@ const WatchlistCard = ({
       </div>
 
       {/* Content Info */}
-      <div className="p-4">
-        <h3 className="text-white text-lg font-semibold truncate group-hover:text-orange-500 transition-colors">
+      <div className="p-3 md:p-4">
+        <h3 className="text-white text-sm md:text-lg font-semibold truncate group-hover:text-orange-500 transition-colors">
           {item.title}
         </h3>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-sm text-gray-400">
+        <div className="flex items-center justify-between mt-1 mb-3 md:mb-0">
+          <span className="text-xs md:text-sm text-gray-400">
             {item.year || "Unknown Year"}
           </span>
           {item.type === "tv" && (item.seasons || item.episodes) && (
             <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-              {item.seasons ? `${item.seasons} S` : ""}
+              {item.seasons ? `${item.seasons}S` : ""}
               {item.seasons && item.episodes ? " • " : ""}
-              {item.episodes ? `${item.episodes} Ep` : ""}
+              {item.episodes ? `${item.episodes}Ep` : ""}
             </span>
           )}
+        </div>
+
+        {/* Mobile Actions (Visible only on mobile) */}
+        <div className="flex md:hidden items-center gap-2 mt-2 pt-2 border-t border-white/5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-white/10 text-white text-xs font-semibold active:bg-white/20 transition-colors"
+          >
+            <Play className="w-3 h-3 fill-current" />
+            Watch
+          </button>
+          <button
+            onClick={onRemove}
+            className="flex items-center justify-center p-1.5 rounded-lg bg-red-500/10 text-red-500 active:bg-red-500/20 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
@@ -298,17 +318,17 @@ export default function WatchlistPage() {
       </div>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="relative z-10 px-6 md:px-16 lg:px-16 pt-32 pb-12">
+      <div className="relative z-10 px-4 md:px-16 lg:px-16 pt-24 md:pt-32 pb-12">
         {/* Header Section */}
-        <div className="flex flex-col items-center mb-12 text-center">
+        <div className="flex flex-col items-center mb-8 md:mb-12 text-center">
           <h1
-            className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight drop-shadow-2xl"
+            className="text-3xl md:text-6xl font-bold text-white mb-4 tracking-tight drop-shadow-2xl"
             style={{ fontFamily: FONT_FAMILY }}
           >
             Your Watchlist
           </h1>
           <p
-            className="text-gray-400 text-lg max-w-xl"
+            className="text-gray-400 text-sm md:text-lg max-w-xl"
             style={{ fontFamily: FONT_FAMILY }}
           >
             A personalized collection of movies and shows you want to
@@ -334,8 +354,8 @@ export default function WatchlistPage() {
         {/* Content Grid */}
         {loading ? (
           // Skeletons inside Results Container
-          <div className="bg-[#3c3c3c17] border border-white/5 rounded-3xl p-6 md:p-8 shadow-lg">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <div className="bg-[#3c3c3c17] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
@@ -374,8 +394,8 @@ export default function WatchlistPage() {
           </div>
         ) : (
           // Results Container with "Fake Glass" Style
-          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-6 md:p-8 shadow-lg">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-4 md:p-8 shadow-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
               {visible.map((item) => (
                 <WatchlistCard
                   key={item.id}

@@ -128,6 +128,13 @@ export default function TVShowPlayer() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Set default view mode to list on mobile
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setViewMode("list");
+    }
+  }, []);
+
   const watchDuration = useRef(0);
   const watchTimer = useRef<NodeJS.Timeout | null>(null);
   const hasSavedWatch = useRef(false);
@@ -368,10 +375,10 @@ export default function TVShowPlayer() {
       </div>
 
       {/* --- SECTION 1: THEATER (Full Viewport) --- */}
-      <div className="relative z-10 h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 h-full overflow-hidden">
+      <div className="relative z-10 min-h-screen flex flex-col pt-24 pb-6 px-4 md:px-8 lg:px-12 max-w-[1920px] mx-auto">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-full">
           {/* Left: Player (9 cols) */}
-          <div className="lg:col-span-9 flex flex-col h-full border border-white/5 rounded-3xl">
+          <div className="lg:col-span-9 flex flex-col h-auto lg:h-full border border-white/5 rounded-3xl aspect-video lg:aspect-auto">
             <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl group">
               <iframe
                 src={servers[activeServerIndex].link}
@@ -384,7 +391,7 @@ export default function TVShowPlayer() {
           </div>
 
           {/* Right: Sidebar (3 cols) */}
-          <div className="lg:col-span-3 flex flex-col gap-4 h-full min-h-0 flex-shrink-0">
+          <div className="lg:col-span-3 flex flex-col gap-4 h-auto lg:h-full lg:min-h-0 flex-shrink-0">
             {/* Info Card */}
             <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0">
               <h1
@@ -420,7 +427,7 @@ export default function TVShowPlayer() {
             </div>
 
             {/* Server Selector (Scrollable) */}
-            <div className="flex-1 bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl overflow-hidden flex flex-col min-h-0">
+            <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl overflow-hidden flex flex-col min-h-[200px] lg:flex-1 lg:min-h-0">
               <div className="flex items-center gap-2 mb-4 text-gray-400 text-xs font-bold uppercase tracking-widest">
                 <Server size={14} />
                 <span>Source</span>
@@ -439,7 +446,7 @@ export default function TVShowPlayer() {
             </div>
 
             {/* Synopsis */}
-            <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+            <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-5 shadow-xl flex-shrink-0 max-h-none lg:max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
               <div className="flex items-center gap-2 mb-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
                 <Info size={14} />
                 <span>Synopsis</span>
@@ -457,7 +464,7 @@ export default function TVShowPlayer() {
         {/* The h-auto here allows it to shrink/grow based on content, fixing the empty space issue */}
         <div className="flex flex-col bg-[#1518215f] border border-white/5 rounded-3xl overflow-hidden shadow-xl h-auto min-h-[300px]">
           {/* Header */}
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             <div className="flex items-center justify-between gap-4">
               <h3 className="text-sm font-bold text-white uppercase tracking-widest">
                 Seasons and episodes
@@ -500,9 +507,9 @@ export default function TVShowPlayer() {
           </div>
 
           <div className="flex-1 grid grid-cols-1 md:grid-cols-[240px_1fr] h-auto">
-            {/* Sidebar: Seasons (Sticky) */}
-            <div className=" pt-2 px-6 pb-6 h-full max-h-[800px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-              <div className="flex flex-col gap-4">
+            {/* Sidebar: Seasons (Sticky on desktop, horizontal scroll on mobile) */}
+            <div className="pt-2 px-4 md:px-6 pb-4 md:pb-6 h-auto md:h-full md:max-h-[800px] overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 border-b md:border-b-0 md:border-r border-white/5 mb-4 md:mb-0 flex-shrink-0">
+              <div className="flex flex-row md:flex-col gap-3 md:gap-4 min-w-max md:min-w-0">
                 {validSeasons.map((season: any) => {
                   const isActive = selectedSeason === season.season_number;
                   return (
@@ -510,7 +517,7 @@ export default function TVShowPlayer() {
                       key={season.season_number}
                       onClick={() => setSelectedSeason(season.season_number)}
                       className={`
-                        w-full flex items-center gap-3 p-2 rounded-lg border border-white/5 transition-all group text-left relative overflow-hidden
+                        w-40 md:w-full flex items-center gap-3 p-2 rounded-lg border border-white/5 transition-all group text-left relative overflow-hidden flex-shrink-0
                         ${
                           isActive
                             ? "bg-white/5 border border-orange-500/30"
@@ -555,9 +562,9 @@ export default function TVShowPlayer() {
             </div>
 
             {/* Main: Episodes (Height adapts to content) */}
-            <div className="pt-2 px-6 pb-6 h-auto border-l border-white/5">
+            <div className="pt-2 px-4 md:px-6 pb-4 md:pb-6 h-auto md:border-l border-white/5">
               {viewMode === "grid" ? (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
                   {filteredEpisodes.map((ep) => {
                     const isSelected = selectedEpisode === ep.episode_number;
                     return (

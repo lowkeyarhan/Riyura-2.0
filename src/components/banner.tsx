@@ -110,10 +110,20 @@ export default function Banner({ initialMovies = [] }: BannerProps) {
       : text || "";
 
   const [slideTimer, setSlideTimer] = useState<NodeJS.Timeout | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (in px) to trigger slide change
+  const minSwipeDistance = 50;
 
   const nextSlide = () => {
     if (movies.length === 0) return;
     setCurrentSlide((prev) => (prev + 1) % movies.length);
+  };
+
+  const prevSlide = () => {
+    if (movies.length === 0) return;
+    setCurrentSlide((prev) => (prev - 1 + movies.length) % movies.length);
   };
 
   const resetInterval = () => {
@@ -177,14 +187,14 @@ export default function Banner({ initialMovies = [] }: BannerProps) {
               sizes="100vw"
             />
             {/* The gradients are INSIDE the motion div so they fade with the image, preventing 'flash' */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* 2. ANIMATED CONTENT */}
-      <div className="relative z-10 h-full flex flex-col justify-between p-8 md:p-16">
+      <div className="relative z-10 h-full flex flex-col justify-between p-8 md:p-16 pointer-events-none">
         <div className="flex-1 flex flex-col justify-end">
           <AnimatePresence mode="wait">
             {currentMovie && (
@@ -216,7 +226,7 @@ export default function Banner({ initialMovies = [] }: BannerProps) {
                     currentMovie.original_name}
                 </h1>
 
-                <button className="w-fit flex items-center gap-2 px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-white/90 transition mb-6">
+                <button className="w-fit flex items-center gap-2 px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-white/90 transition mb-6 pointer-events-auto">
                   <FontAwesomeIcon icon={faPlay} />
                   Play
                 </button>
@@ -247,7 +257,7 @@ export default function Banner({ initialMovies = [] }: BannerProps) {
                       : "rgba(255,255,255,0.5)",
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="h-2 rounded-full"
+                className="h-2 rounded-full pointer-events-auto"
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

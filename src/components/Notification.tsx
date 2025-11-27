@@ -9,7 +9,7 @@ const Notification: React.FC = () => {
   const { notifications, removeNotification } = useNotification();
 
   return (
-    <div className="fixed bottom-5 left-5 z-[9999] flex flex-col gap-3 pointer-events-none">
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-5 md:translate-x-0 z-[9999] flex flex-col gap-3 pointer-events-none w-full max-w-[320px] px-4 md:px-0">
       <AnimatePresence>
         {notifications.map((notification) => (
           <motion.div
@@ -20,7 +20,7 @@ const Notification: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="pointer-events-auto"
           >
-            <div className="relative w-[320px] flex items-center gap-3 p-4 rounded-xl bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/10 shadow-lg">
+            <div className="relative w-full md:w-[320px] flex items-center gap-3 p-4 rounded-xl bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/10 shadow-lg">
               {/* Icon */}
               <div className="shrink-0">
                 {notification.type === "success" ? (

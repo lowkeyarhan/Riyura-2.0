@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/useAuth";
 import Navbar from "@/src/components/navbar";
+import MobileNavbar from "@/src/components/MobileNavbar";
 import LoadingDots from "@/src/components/LoadingDots";
 import { supabase } from "@/src/lib/supabase";
 
@@ -58,7 +59,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, [loading, user, onboarded, isPublic, router]);
 
   if (loading) {
-    // Show loading state while auth is being checked
     return (
       <div
         className="min-h-screen grid place-items-center"
@@ -72,7 +72,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!user && !isPublic) {
-    // User not logged in and accessing protected page - show redirect message
     return (
       <div
         className="min-h-screen grid place-items-center"
@@ -87,7 +86,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   return shouldShowNavbar ? (
     <>
-      <Navbar />
+      <div className="hidden md:block">
+        <Navbar />
+      </div>
+      <div className="block md:hidden">
+        <MobileNavbar />
+      </div>
       {children}
     </>
   ) : (

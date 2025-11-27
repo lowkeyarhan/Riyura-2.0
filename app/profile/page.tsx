@@ -21,6 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import Footer from "@/src/components/footer";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/supabase";
 import { getWatchlist, removeFromWatchHistory } from "@/src/lib/database";
@@ -315,22 +316,20 @@ const ContinueWatchingCard = ({
       scale: 0.95,
       transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
     }}
-    className="group relative flex items-center gap-5 p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-default overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
+    onClick={onClick}
+    className="group relative flex items-center gap-3 p-2 md:gap-5 md:p-4 bg-[#1518215f] border border-white/5 rounded-2xl hover:border-white/20 hover:bg-[#15182180] transition-all cursor-pointer overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/20"
   >
-    <div
-      className="relative w-40 aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0 shadow-inner cursor-pointer"
-      onClick={onClick}
-    >
+    <div className="relative w-28 md:w-40 aspect-[3/2] md:aspect-video rounded-lg overflow-hidden bg-[#0f1115] flex-shrink-0 shadow-inner">
       <Image
         src={item.image}
         alt={item.title}
         fill
         className="object-cover transition-transform duration-500"
-        sizes="(max-width: 768px) 50vw, 160px"
+        sizes="(max-width: 768px) 112px, 160px"
       />
       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-        <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-          <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+          <Play className="w-3 h-3 md:w-4 md:h-4 fill-black text-black ml-0.5" />
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
@@ -340,15 +339,14 @@ const ContinueWatchingCard = ({
         />
       </div>
     </div>
-    <div className="flex-1 min-w-0 py-1">
+    <div className="flex-1 min-w-0 md:py-1 pr-6 sm:pr-0">
       <h4
-        className="text-lg font-bold text-white truncate mb-1 group-hover:text-orange-600 transition-colors cursor-pointer"
-        onClick={onClick}
+        className="text-base md:text-lg font-bold text-white truncate mb-1 group-hover:text-orange-600 transition-colors"
         style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
       >
         {item.title}
       </h4>
-      <p className="text-xs font-medium text-gray-400 mb-3 flex items-center gap-2">
+      <p className="text-xs font-medium text-gray-400 mb-2 md:mb-3 flex items-center gap-2">
         <span className="bg-white/10 px-2 py-0.5 rounded text-gray-300">
           {item.type}
         </span>
@@ -356,18 +354,21 @@ const ContinueWatchingCard = ({
           <span className="text-gray-600">• {item.year}</span>
         )}
       </p>
-      <div className="flex items-center gap-3 text-xs font-medium text-gray-500">
+      <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-medium text-gray-500">
         <span className="text-gray-300">{item.progress}% completed</span>
         <span className="w-1 h-1 rounded-full bg-gray-600" />
         <span>{item.remaining}</span>
       </div>
     </div>
     <div
-      onClick={onDelete}
-      className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer z-10"
+      onClick={(e) => {
+        e.stopPropagation();
+        onDelete(e);
+      }}
+      className="absolute top-2 right-2 sm:static flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full text-gray-400 sm:text-gray-500 bg-black/20 sm:bg-transparent hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer z-10"
       title="Remove from history"
     >
-      <Trash2 size={16} />
+      <Trash2 size={14} className="md:w-4 md:h-4" />
     </div>
   </motion.div>
 );
@@ -503,17 +504,17 @@ const RecommendationCard = ({
 };
 
 const ProfileSkeleton = () => (
-  <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
-    <div className="relative z-10 w-full h-full pt-32 pb-16 px-8 md:px-16 lg:px-16">
+  <div className="relative min-h-screen bg-black text-white font-sans overflow-hidden">
+    <div className="relative z-10 w-full h-full pt-24 pb-24 px-4 md:pt-32 md:pb-16 md:px-16 lg:px-16">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
         {/* Left Column Skeleton */}
-        <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-[calc(100vh-8rem)]">
-          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-6 relative overflow-hidden shadow-2xl animate-pulse">
+        <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-fit">
+          <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-4 md:p-6 relative overflow-hidden shadow-2xl animate-pulse">
             <div className="flex flex-col items-center text-center mt-4">
-              <div className="w-28 h-28 mb-5 rounded-full bg-white/10" />
-              <div className="h-8 w-32 bg-white/10 rounded-lg mb-2" />
-              <div className="h-4 w-48 bg-white/5 rounded-lg mb-8" />
-              <div className="flex gap-3 w-full mb-8">
+              <div className="w-24 h-24 md:w-28 md:h-28 mb-5 rounded-full bg-white/10" />
+              <div className="h-6 md:h-8 w-32 bg-white/10 rounded-lg mb-2" />
+              <div className="h-4 w-48 bg-white/5 rounded-lg mb-6 md:mb-8" />
+              <div className="flex gap-2 md:gap-3 w-full mb-6 md:mb-8">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-20 flex-1 rounded-2xl bg-white/5" />
                 ))}
@@ -532,24 +533,24 @@ const ProfileSkeleton = () => (
           </div>
         </div>
         {/* Right Column Skeleton */}
-        <div className="lg:col-span-8 space-y-10 overflow-hidden pr-2">
+        <div className="lg:col-span-8 space-y-8 md:space-y-10 overflow-hidden pr-2">
           <div className="flex flex-col items-start gap-3 animate-pulse">
-            <div className="h-12 w-64 bg-white/10 rounded-xl" />
-            <div className="h-5 w-48 bg-white/5 rounded-lg" />
+            <div className="h-8 md:h-12 w-48 md:w-64 bg-white/10 rounded-xl" />
+            <div className="h-4 md:h-5 w-32 md:w-48 bg-white/5 rounded-lg" />
           </div>
           {[1, 2, 3].map((section) => (
-            <div key={section} className="space-y-5">
-              <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse" />
+            <div key={section} className="space-y-4 md:space-y-5">
+              <div className="h-6 md:h-8 w-32 md:w-48 bg-white/10 rounded-lg animate-pulse" />
               <div
                 className={`grid grid-cols-2 ${
-                  section === 1 ? "" : "sm:grid-cols-4"
-                } gap-5`}
+                  section === 1 ? "" : "sm:grid-cols-3 lg:grid-cols-4"
+                } gap-3 md:gap-5`}
               >
                 {section === 1
                   ? [1, 2].map((i) => (
                       <div
                         key={i}
-                        className="w-full h-40 bg-[#1518215f] border border-white/5 rounded-2xl animate-pulse"
+                        className="w-full h-32 md:h-40 bg-[#1518215f] border border-white/5 rounded-2xl animate-pulse"
                       />
                     ))
                   : [1, 2, 3, 4].map((i) => (
@@ -1017,7 +1018,7 @@ export default function ProfilePage() {
   if (loading || !user) return <ProfileSkeleton />;
 
   return (
-    <div className="relative h-screen bg-black text-white font-sans overflow-hidden">
+    <div className="relative min-h-screen bg-black text-white font-sans overflow-x-hidden">
       {/* --- BACKGROUND LAYERS --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-black" />
@@ -1027,13 +1028,13 @@ export default function ProfilePage() {
       </div>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="relative z-10 w-full h-full pt-32 pb-16 px-8 md:px-16 lg:px-16">
+      <div className="relative z-10 w-full h-full pt-20 md:pb-24 px-4 md:pt-32 pb-8 md:px-16 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
           {/* --- LEFT COLUMN: Identity & Navigation --- */}
           <div className="lg:col-span-4 flex flex-col justify-between lg:sticky lg:top-32 h-fit">
-            <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
+            <div className="bg-[#1518215f] border border-white/5 rounded-3xl p-4 md:p-6 relative lg:overflow-hidden shadow-2xl">
               <div className="relative flex flex-col items-center text-center mt-4">
-                <div className="relative w-28 h-28 mb-5 group">
+                <div className="relative w-24 h-24 md:w-28 md:h-28 mb-5 group">
                   <div className="relative w-full h-full rounded-full overflow-hidden border-[1px] shadow-xl">
                     {avatarUrl ? (
                       <Image
@@ -1057,23 +1058,26 @@ export default function ProfilePage() {
                 </div>
 
                 <h2
-                  className="text-2xl font-bold text-white mb-1"
+                  className="text-xl md:text-2xl font-bold text-white mb-1"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
                   {firstName || "User"}
                 </h2>
-                <p className="text-sm text-gray-400 mb-8">{user.email}</p>
+                <p className="text-sm text-gray-400 mb-6 md:mb-8">
+                  {user.email}
+                </p>
 
-                <div className="flex gap-3 w-full mb-8">
+                <div className="flex gap-2 md:gap-3 w-full md:mb-8">
                   {stats.map((stat) => (
                     <StatBadge key={stat.label} stat={stat} />
                   ))}
                 </div>
 
+                {/* Sign Out Button - Desktop Only (Moved to bottom on mobile) */}
                 <button
                   onClick={handleSignOut}
                   disabled={isSignOutLoading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-red-600/10 border border-red-600/30 text-red-500 font-bold text-sm hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300"
+                  className="hidden md:flex w-full items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-red-600/10 border border-red-600/30 text-red-500 font-bold text-sm hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300"
                 >
                   {isSignOutLoading ? (
                     <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -1085,7 +1089,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="space-y-3 mt-6 mb-2">
+            {/* Preferences - Desktop Only (Moved to bottom on mobile) */}
+            <div className="hidden lg:block space-y-3 mt-6 mb-2">
               <h3 className="px-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
                 Preferences
               </h3>
@@ -1110,22 +1115,24 @@ export default function ProfilePage() {
           </div>
 
           {/* --- RIGHT COLUMN: Content Feed --- */}
-          <div className="lg:col-span-8 space-y-12 overflow-y-auto max-h-[calc(100vh-8rem)] scrollbar-hide">
-            <div className="flex flex-col items-start gap-1">
+          <div className="lg:col-span-8 space-y-8 md:space-y-12 lg:overflow-y-auto lg:max-h-[calc(100vh-8rem)] scrollbar-hide">
+            <div className="hidden md:flex flex-col items-start gap-1">
               <h1
-                className="text-4xl md:text-5xl font-bold text-white tracking-tight"
+                className="text-2xl md:text-5xl font-bold text-white tracking-tight"
                 style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
               >
                 Dashboard
               </h1>
-              <p className="text-gray-400">Welcome back to your collection.</p>
+              <p className="text-sm md:text-base text-gray-400">
+                Welcome back to your collection.
+              </p>
             </div>
 
             {/* Continue Watching */}
             <section>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4 md:mb-5">
                 <h3
-                  className="text-xl font-bold text-white flex items-center gap-3"
+                  className="text-lg md:text-xl font-bold text-white flex items-center gap-3"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
                   Continue Watching
@@ -1133,7 +1140,7 @@ export default function ProfilePage() {
                 {!isLoadingHistory && continueWatching.length > 2 && (
                   <button
                     onClick={() => setShowAllWatching(!showAllWatching)}
-                    className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                    className="text-xs md:text-sm font-bold text-gray-400 hover:text-white transition-colors"
                   >
                     {showAllWatching ? "Show Less" : "Show More"}
                   </button>
@@ -1209,21 +1216,21 @@ export default function ProfilePage() {
 
             {/* Watchlist */}
             <section>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4 md:mb-5">
                 <h3
-                  className="text-xl font-bold text-white flex items-center gap-3"
+                  className="text-lg md:text-xl font-bold text-white flex items-center gap-3"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
                   Watchlist
                 </h3>
                 <button
                   onClick={() => router.push("/watchlist")}
-                  className="flex items-center gap-1 text-sm font-bold text-white/60 hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-xs md:text-sm font-bold text-white/60 hover:text-white transition-colors"
                 >
                   View All <ChevronRight size={16} />
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
                 {isLoadingWatchlist ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <WatchlistCard key={`loading-${i}`} />
@@ -1263,9 +1270,9 @@ export default function ProfilePage() {
 
             {/* Recommended */}
             <section>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4 md:mb-5">
                 <h3
-                  className="text-xl font-bold text-white flex items-center gap-3"
+                  className="text-lg md:text-xl font-bold text-white flex items-center gap-3"
                   style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
                 >
                   Recommended for You
@@ -1295,7 +1302,7 @@ export default function ProfilePage() {
                   {recommendations.length > 4 && (
                     <button
                       onClick={() => setShowAllRecommended(!showAllRecommended)}
-                      className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
+                      className="text-xs md:text-sm font-bold text-gray-400 hover:text-white transition-colors"
                     >
                       {showAllRecommended ? "Show Less" : "Show More"}
                     </button>
@@ -1305,7 +1312,7 @@ export default function ProfilePage() {
               {isLoadingRecommendations ||
               recommendationsError ||
               !hasApiKey ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 lg:pb-16">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
                   {Array.from({ length: showAllRecommended ? 8 : 4 }).map(
                     (_, i) => (
                       <div
@@ -1354,7 +1361,7 @@ export default function ProfilePage() {
               ) : (
                 <motion.div
                   layout
-                  className="grid grid-cols-2 sm:grid-cols-4 gap-5 lg:pb-16"
+                  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5"
                 >
                   <AnimatePresence mode="popLayout">
                     {(showAllRecommended
@@ -1385,8 +1392,54 @@ export default function ProfilePage() {
                 </motion.div>
               )}
             </section>
+
+            {/* --- MOBILE ONLY SECTIONS (Preferences & Sign Out) --- */}
+            <div className="lg:hidden space-y-8 pt-8 border-t border-white/5">
+              <div className="space-y-3">
+                <h3 className="px-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                  Preferences
+                </h3>
+                {SETTINGS_LINKS.map((link) =>
+                  link.hasInput ? (
+                    <GeminiApiKeyInput
+                      key={link.label}
+                      value={apiKeyInput}
+                      onChange={setApiKeyInput}
+                      onSave={handleSaveApiKey}
+                      onDelete={handleDeleteApiKey}
+                      isLoading={isLoadingApiKey}
+                      isSaving={isSavingApiKey}
+                      keyPreview={apiKeyPreview}
+                      hasKey={hasApiKey}
+                    />
+                  ) : (
+                    <SettingsLink key={link.label} item={link} />
+                  )
+                )}
+              </div>
+
+              <div className="flex justify-center">
+                <button
+                  onClick={handleSignOut}
+                  disabled={isSignOutLoading}
+                  className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-red-600 font-bold text-sm hover:bg-orange-600 hover:text-white hover:border-red-600 transition-all duration-300"
+                >
+                  {isSignOutLoading ? (
+                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <LogOut size={16} />
+                  )}
+                  Sign Out
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* --- FOOTER --- */}
+      <div className="lg:hidden relative z-10">
+        <Footer />
       </div>
     </div>
   );

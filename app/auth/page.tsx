@@ -139,7 +139,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center relative overflow-hidden py-12">
+    <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center relative overflow-hidden py-8 md:py-12 px-4">
       {/* Background Effects - Starts Immediately */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -208,7 +208,7 @@ export default function AuthPage() {
           </div>
 
           {/* Auth Card */}
-          <div className="bg-[#1a2332] border border-white/10 rounded-2xl p-8 backdrop-blur-sm">
+          <div className="bg-[#1518215f] border border-white/5 rounded-2xl p-8 backdrop-blur-sm">
             {/* Toggle Tabs */}
             <div className="relative flex gap-2 mb-8 bg-black/30 rounded-lg p-1">
               <button
@@ -422,7 +422,7 @@ export default function AuthPage() {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span
-                    className="px-4 bg-[#1a2332] text-gray-400 uppercase tracking-wider"
+                    className="px-4 text-gray-400 uppercase tracking-wider"
                     style={{ fontFamily: "Montserrat, sans-serif" }}
                   >
                     Or
