@@ -118,11 +118,13 @@ const MovieCard = ({
         </div>
       </div>
 
-      <div className="p-3">
-        <h3 className="text-white text-base font-semibold truncate group-hover:text-orange-500 transition-colors">
+      <div className="p-2 sm:p-3">
+        <h3 className="text-white text-xs sm:text-sm md:text-base font-semibold truncate group-hover:text-orange-500 transition-colors">
           {title}
         </h3>
-        <p className="text-sm text-gray-400">{year}</p>
+        <p className="text-[10px] sm:text-xs md:text-sm text-gray-400">
+          {year}
+        </p>
       </div>
     </div>
   );
@@ -243,7 +245,7 @@ export default function ExplorePage() {
   const handleGenreToggle = (genre: string) => {
     setPage(1);
     setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [genre]
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
     );
   };
 
@@ -253,43 +255,42 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-black pt-28 px-6 md:px-16 lg:px-16 pb-12 font-sans">
-      {/* --- STATIC BACKGROUND LAYER (Matches Watchlist/Search) --- */}
+    <div className="relative min-h-screen bg-black pt-20 md:pt-28 px-4 sm:px-6 md:px-16 lg:px-16 pb-20 md:pb-12 font-sans">
+      {/* --- STATIC BACKGROUND LAYER  --- */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-black" />
         <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#155f75b5] blur-[130px] opacity-40" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-[#9a341299] blur-[130px] opacity-30 mix-blend-screen" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,#000000_100%)]" />
-        <div className="absolute inset-0 opacity-[0.06] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] contrast-150 mix-blend-overlay" />
       </div>
 
       <div className="relative z-10">
         {/* --- HERO SECTION (Matching Aesthetics) --- */}
-        <div className="flex flex-col gap-8 mb-12">
+        <div className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-12">
           {/* 1. Heading */}
           <div className="text-center">
             <h1
-              className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 tracking-tight mb-2"
+              className="text-3xl sm:text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 tracking-tight mb-2"
               style={{ fontFamily: "Be Vietnam Pro, sans-serif" }}
             >
               Explore Universe
             </h1>
-            <p className="text-gray-400 text-lg">
+            <p className="text-gray-400 text-sm sm:text-base md:text-lg">
               Dive into millions of movies and TV shows.
             </p>
           </div>
 
           {/* 2. Unified Control Bar (Sticky, Fake Glass) */}
-          <div className="sticky top-24 z-30 flex flex-col md:flex-row items-start md:items-center gap-4 p-1 rounded-2xl bg-[#1518215f] border border-white/10 shadow-2xl">
+          <div className="sticky top-16 md:top-24 z-30 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 p-2 md:p-1 rounded-xl md:rounded-2xl bg-[#1518215f] backdrop-blur-xl border border-white/10 shadow-2xl">
             {/* Left: Media Type Switcher */}
-            <div className="flex p-1 rounded-2xl relative">
+            <div className="flex p-1 rounded-xl md:rounded-2xl relative w-full md:w-auto">
               {MEDIA_TYPES.map((type) => {
                 const isActive = mediaType === type.value;
                 return (
                   <button
                     key={type.value}
                     onClick={() => handleTypeChange(type.value)}
-                    className={`relative cursor-pointer flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors z-10 ${
+                    className={`relative cursor-pointer flex items-center justify-center gap-2 px-3 sm:px-4 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl text-xs sm:text-sm font-bold transition-colors z-10 flex-1 md:flex-initial ${
                       isActive
                         ? "text-white"
                         : "text-gray-500 hover:text-gray-300"
@@ -298,7 +299,7 @@ export default function ExplorePage() {
                     {isActive && (
                       <motion.div
                         layoutId="activeMediaType"
-                        className="absolute inset-0 bg-[#1f232e3f] rounded-xl border border-white/10 shadow-sm -z-10"
+                        className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 md:bg-[#1f232e3f] rounded-lg md:rounded-xl border border-white/10 shadow-sm -z-10"
                         transition={{
                           type: "spring",
                           bounce: 0.2,
@@ -307,7 +308,7 @@ export default function ExplorePage() {
                       />
                     )}
                     <type.icon className="w-4 h-4" />
-                    <span className="hidden sm:block">{type.label}</span>
+                    <span className="text-xs sm:text-sm">{type.label}</span>
                   </button>
                 );
               })}
@@ -319,11 +320,11 @@ export default function ExplorePage() {
             {/* Right: Horizontal Genre Scroll */}
             <div className="relative bg-transparent flex-1 w-full overflow-hidden group/scroll">
               {/* Scroll Container */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-2 py-1 w-full relative">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-1 md:px-2 py-1 w-full relative">
                 {/* Filter Label */}
-                <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-wider px-2 border-r border-white/10 mr-2 flex-shrink-0">
+                <div className="hidden md:flex items-center gap-1.5 md:gap-2 text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2 border-r border-white/10 mr-1 md:mr-2 flex-shrink-0">
                   <Filter className="w-3 h-3" />
-                  <span>Genre</span>
+                  <span className="hidden sm:inline">Genre</span>
                 </div>
 
                 {GENRES.map((genre) => {
@@ -332,7 +333,7 @@ export default function ExplorePage() {
                     <button
                       key={genre}
                       onClick={() => handleGenreToggle(genre)}
-                      className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all border ${
+                      className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer transition-all border touch-manipulation ${
                         isSelected
                           ? "bg-white text-black border-white"
                           : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
@@ -345,24 +346,27 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* Clear Filters Button (Only visible if needed) */}
-            {selectedGenres.length > 0 && selectedGenres[0] !== "Action" && (
-              <button
-                onClick={() => {
-                  setPage(1);
-                  setSelectedGenres(["Action"]);
-                }}
-                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors flex-shrink-0"
-                title="Reset Filters"
-              >
-                <X className="w-4 h-4" />
-              </button>
+            {/* Clear Filters Button (Visible if any genre other than 'Action' is selected) */}
+            {selectedGenres.some((g) => g !== "Action") && (
+              <div className="w-full flex justify-center items-center md:w-auto md:justify-start md:items-start">
+                <button
+                  onClick={() => {
+                    setPage(1);
+                    setSelectedGenres(["Action"]);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 md:px-0 md:w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors flex-shrink-0 touch-manipulation"
+                  title="Reset Filters"
+                >
+                  <X className="w-4 h-4" />
+                  <span className="md:hidden text-sm font-medium">Clear</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
 
         {/* --- Media Grid --- */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
           {items.map((item, idx) => (
             <MovieCard
               key={`${item.id}-${idx}`}
@@ -398,10 +402,10 @@ export default function ExplorePage() {
         {showTopBtn && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 backdrop-blur-2xl  text-white rounded-full cursor-pointer px-5 py-3 shadow-2xl hover:bg-white hover:text-black transition-all flex items-center gap-2 font-bold"
+            className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-40 backdrop-blur-2xl bg-white/10 hover:bg-white text-white hover:text-black rounded-full cursor-pointer px-4 sm:px-5 py-2.5 sm:py-3 shadow-2xl transition-all flex items-center gap-2 font-bold text-xs sm:text-sm touch-manipulation"
           >
-            <ArrowUp size={18} />
-            Scroll
+            <ArrowUp size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="hidden sm:inline">Scroll</span>
           </button>
         )}
       </div>
