@@ -30,6 +30,29 @@ CREATE POLICY "Users can update own profile"
   FOR UPDATE
   USING (auth.uid() = id);
 
+-- Function to automatically create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, display_name, photo_url, last_login)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name'),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture'),
+    NOW()
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to create profile automatically on user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Comments
 COMMENT ON TABLE profiles IS 'User profiles linked to Supabase Auth';
 COMMENT ON COLUMN profiles.id IS 'User ID from Supabase Auth';

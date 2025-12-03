@@ -17,6 +17,9 @@ export default function AuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
+        // Wait a moment for the session to be fully established
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // Get the session from Supabase
         const {
           data: { session },
@@ -35,19 +38,43 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Create user profile silently
-        const profile = await ensureUserProfile({
-          uid: session.user.id,
-          email: session.user.email!,
-          displayName:
-            session.user.user_metadata?.full_name ||
-            session.user.user_metadata?.name ||
-            null,
-          photoURL:
-            session.user.user_metadata?.avatar_url ||
-            session.user.user_metadata?.picture ||
-            null,
-        });
+        console.log("✅ Session established for user:", session.user.id);
+
+        // Wait a bit more for the database trigger to create the profile
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Fetch the profile (should be created by trigger)
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error("❌ Profile fetch error:", profileError);
+          // If profile doesn't exist, try to create it manually
+          const manualProfile = await ensureUserProfile({
+            uid: session.user.id,
+            email: session.user.email!,
+            displayName:
+              session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.name ||
+              null,
+            photoURL:
+              session.user.user_metadata?.avatar_url ||
+              session.user.user_metadata?.picture ||
+              null,
+          });
+
+          if (manualProfile && !manualProfile.onboarded) {
+            router.replace("/onboarding");
+          } else {
+            router.replace("/home");
+          }
+          return;
+        }
+
+        console.log("✅ Profile loaded:", profile);
 
         // Check if user needs onboarding
         if (profile && !profile.onboarded) {
@@ -56,6 +83,7 @@ export default function AuthCallbackPage() {
           router.replace("/home");
         }
       } catch (error: any) {
+        console.error("❌ Auth callback error:", error);
         setError(`Error: ${error.message}`);
         setTimeout(() => router.push("/auth"), 3000);
       }

@@ -60,6 +60,7 @@ export default function AuthPage() {
           email,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
               display_name: name.trim() || undefined,
               full_name: name.trim() || undefined,
@@ -69,16 +70,16 @@ export default function AuthPage() {
 
         if (signUpError) throw signUpError;
 
-        if (data.user) {
-          await ensureUserProfile({
-            uid: data.user.id,
-            email: data.user.email!,
-            displayName: name.trim() || null,
-            photoURL: null,
-          });
+        // Check if email confirmation is required
+        if (data?.user && !data.session) {
+          // Email confirmation required - show message
+          setInfo(
+            "Account created! Check your email and click the confirmation link to verify your account."
+          );
+        } else {
+          // Auto-confirmed (should not happen with email confirmation enabled)
+          router.push("/auth/callback");
         }
-
-        setInfo("Account created! Check your email to verify your account.");
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -246,7 +247,7 @@ export default function AuthPage() {
               </button>
             </div>
 
-            {/* Form */}
+            {/* Regular Auth Form */}
             <form className="space-y-5" onSubmit={onSubmit}>
               <AnimatePresence initial={false}>
                 {isSignUp && (

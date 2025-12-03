@@ -66,6 +66,8 @@ export async function ensureUserProfile(user: {
   photoURL: string | null;
 }) {
   const now = new Date().toISOString();
+  
+  // First check if profile exists
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -75,6 +77,7 @@ export async function ensureUserProfile(user: {
   if (error && error.code !== "PGRST116") throw error;
 
   if (!data) {
+    // Profile doesn't exist, create it
     const profile = {
       id: user.uid,
       email: user.email,
@@ -84,21 +87,26 @@ export async function ensureUserProfile(user: {
       last_login: now,
     };
 
-    const { error: insertError } = await supabase
+    // Use upsert instead of insert to handle race conditions
+    const { data: insertedData, error: insertError } = await supabase
       .from("profiles")
-      .insert(profile)
-      .select();
+      .upsert(profile, { onConflict: "id" })
+      .select()
+      .single();
 
-    if (insertError && insertError.code !== "23505") throw insertError;
-    return profile;
+    if (insertError) throw insertError;
+    return insertedData;
   }
 
-  await supabase
+  // Update last login
+  const { data: updatedData } = await supabase
     .from("profiles")
     .update({ last_login: now })
-    .eq("id", user.uid);
+    .eq("id", user.uid)
+    .select()
+    .single();
 
-  return data;
+  return updatedData || data;
 }
 
 // Cache Invalidation Helper
